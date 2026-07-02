@@ -326,92 +326,65 @@
             </div>
         </div>
 
-        <!-- Modal Custo Operacional -->
-        <div id="modal-expense" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex-col animate-scale-in">
+        <!-- Modal Item Híbrido (Equipe / Manutenção / Ferramenta-Fornecedor) -->
+        <div id="modal-item" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex-col animate-scale-in">
             <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center bg-[#111]">
-                <h2 id="expense-modal-title" class="text-xl font-bold text-white tracking-tight">Custo / Fornecedor</h2>
+                <h2 id="item-modal-title" class="text-xl font-bold text-white tracking-tight">Novo Item</h2>
                 <button onclick="window.appActions.closeModal()" class="p-2 text-gray-400 hover:text-red-500 bg-[#222] rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div class="p-6 space-y-5">
-                <p class="text-xs text-gray-400 mb-4">Adicione ferramentas ou fornecedores e defina quando eles devem pesar no DFC.</p>
-                <input type="hidden" id="expense-id" />
+                <input type="hidden" id="item-id" />
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Descrição / Fornecedor</label>
-                    <input type="text" id="expense-name" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" placeholder="Ex: AWS, Make, Anúncios..." />
+                    <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Categoria do Custo</label>
+                    <select id="item-category" onchange="window.appActions.onItemCategoryChange()" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none appearance-none">
+                        <option value="equipe">👥 Equipe (sai depois da margem)</option>
+                        <option value="manutencao">🔧 Manutenção (sai depois da margem)</option>
+                        <option value="ferramenta">🛠️ Ferramenta / Fornecedor (sai antes da margem)</option>
+                    </select>
+                </div>
+
+                <p id="item-hint" class="text-xs text-gray-400"></p>
+
+                <div>
+                    <label id="item-name-label" class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Nome do Integrante</label>
+                    <input type="text" id="item-name" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" />
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
+                    <div id="item-role-group">
+                        <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Cargo / Função</label>
+                        <input type="text" id="item-role" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" />
+                    </div>
+                    <div id="item-etype-group" class="hidden">
                         <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Tipo de Custo</label>
-                        <select id="expense-type" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none appearance-none">
+                        <select id="item-expense-type" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none appearance-none">
                             <option value="recorrente">Recorrente Mensal</option>
                             <option value="unico">Custo Único</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Mês de Referência / Início</label>
-                        <input type="month" id="expense-month" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" />
+                        <label id="item-month-label" class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Mês de Início</label>
+                        <input type="month" id="item-month" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" />
                     </div>
                 </div>
 
-                <div>
+                <div id="item-client-group" class="hidden">
                     <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Alocado a um Projeto (Opcional)</label>
-                    <select id="expense-clientId" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none">
-                    </select>
+                    <select id="item-clientId" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none"></select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-red-500 mb-1.5 uppercase">Valor do Custo (R$)</label>
+                    <label id="item-value-label" class="block text-xs font-bold text-red-500 mb-1.5 uppercase">Salário/Custo Fixo Mensal (R$)</label>
                     <div class="relative w-full">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">R$</span>
-                        <input type="text" id="expense-amount" class="currency-mask w-full bg-[#0a0a0a] border border-red-900/50 rounded-lg p-3 pl-9 text-white font-bold focus:border-red-500 outline-none" />
+                        <input type="text" id="item-value" class="currency-mask w-full bg-[#0a0a0a] border border-red-900/50 rounded-lg p-3 pl-9 text-white font-bold focus:border-red-500 outline-none" />
                     </div>
                 </div>
             </div>
             <div class="p-6 border-t border-[#2a2a2a] bg-[#111] flex justify-end gap-3">
                 <button onclick="window.appActions.closeModal()" class="px-5 py-2.5 rounded-lg font-bold text-gray-400 hover:text-white transition-colors hover:bg-[#222]">Cancelar</button>
-                <button onclick="window.appActions.saveExpense()" class="bg-red-600 hover:bg-red-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-red-900/30 transition-transform hover:-translate-y-0.5">Salvar</button>
-            </div>
-        </div>
-
-        <!-- Modal Team -->
-        <div id="modal-team" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex-col animate-scale-in">
-            <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center bg-[#111]">
-                <h2 id="team-modal-title" class="text-xl font-bold text-white tracking-tight">Equipe (Custos Fixos)</h2>
-                <button onclick="window.appActions.closeModal()" class="p-2 text-gray-400 hover:text-red-500 bg-[#222] rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div class="p-6 space-y-5">
-                <p class="text-xs text-gray-400 mb-4">Insira o mês de início para que o custo não afete o DFC de meses anteriores.</p>
-                <input type="hidden" id="team-id" />
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Nome do Integrante</label>
-                    <input type="text" id="team-name" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" />
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Cargo / Função</label>
-                        <input type="text" id="team-role" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Mês de Início</label>
-                        <input type="month" id="team-startMonth" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" />
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-red-500 mb-1.5 uppercase">Salário/Custo Fixo Mensal (R$)</label>
-                    <div class="relative w-full">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">R$</span>
-                        <input type="text" id="team-cost" class="currency-mask w-full bg-[#0a0a0a] border border-red-900/50 rounded-lg p-3 pl-9 text-white font-bold focus:border-red-500 outline-none" />
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 border-t border-[#2a2a2a] bg-[#111] flex justify-end gap-3">
-                <button onclick="window.appActions.closeModal()" class="px-5 py-2.5 rounded-lg font-bold text-gray-400 hover:text-white transition-colors hover:bg-[#222]">Cancelar</button>
-                <button onclick="window.appActions.saveTeam()" class="bg-red-600 hover:bg-red-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-red-900/30 transition-transform hover:-translate-y-0.5">Salvar</button>
+                <button onclick="window.appActions.saveItem()" class="bg-red-600 hover:bg-red-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-red-900/30 transition-transform hover:-translate-y-0.5">Salvar</button>
             </div>
         </div>
 
@@ -427,6 +400,18 @@
                 </div>
                 <div class="p-6 md:p-8" id="member-dash-content"></div>
             </div>
+        </div>
+
+        <!-- Modal Histórico (detalhe do mês travado) -->
+        <div id="modal-history" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex-col animate-scale-in relative">
+            <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-red-900/30 border border-red-500/50 rounded-full flex items-center justify-center font-black text-red-400 shadow-inner"><i data-lucide="calendar-days" class="w-5 h-5"></i></div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight" id="history-modal-title">Detalhe do Fechamento</h2>
+                </div>
+                <button onclick="window.appActions.closeModal()" class="p-2 text-gray-400 hover:text-red-500 bg-[#222] hover:bg-[#333] rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 md:p-8" id="history-modal-content"></div>
         </div>
 
     </div>
@@ -699,7 +684,7 @@
         window.appActions.setMemberChart = (id) => { state.selectedMemberId = id; renderChart(); };
 
         window.appActions.closeModal = () => {
-            const modals = ['modal-client', 'modal-expense', 'modal-team', 'modal-history', 'modal-member-dashboard'];
+            const modals = ['modal-client', 'modal-item', 'modal-history', 'modal-member-dashboard'];
             modals.forEach(m => document.getElementById(m)?.classList.add('hidden'));
             document.getElementById('modal-backdrop').classList.add('hidden');
         };
@@ -747,7 +732,7 @@
 
             const sel = document.createElement('select');
             sel.className = 'flex-1 bg-[#111] border border-[#333] rounded-lg p-2 text-white text-xs outline-none focus:border-red-500 alloc-member';
-            sel.innerHTML = `<option value="">Selecionar Membro</option>` + state.team.map(m => `<option value="${m.id}" ${m.id === memberId ? 'selected' : ''}>${escapeHTML(m.name)}</option>`).join('');
+            sel.innerHTML = `<option value="">Selecionar Membro</option>` + state.team.filter(m => (m.itemType || 'equipe') !== 'manutencao').map(m => `<option value="${m.id}" ${m.id === memberId ? 'selected' : ''}>${escapeHTML(m.name)}</option>`).join('');
 
             const inp = document.createElement('input');
             inp.type = 'number';
@@ -811,90 +796,175 @@
         };
 
         // ================= CRUD TEAM =================
-        window.appActions.openTeamModal = (id) => {
-            document.getElementById('team-modal-title').innerText = id ? 'Editar Integrante' : 'Novo Integrante';
-            const m = state.team.find(x => x.id === id) || {};
-            document.getElementById('team-id').value = id || '';
-            document.getElementById('team-name').value = m.name || '';
-            document.getElementById('team-role').value = m.role || '';
-            document.getElementById('team-startMonth').value = m.startMonth || state.selectedMonth;
-            setCurrencyInput('team-cost', m.cost);
-            showModalBase('modal-team');
+        // ================= CRUD ITENS (Equipe/Manutenção -> team ; Ferramenta -> expenses) =================
+        window.appActions.onItemCategoryChange = () => {
+            const cat = document.getElementById('item-category').value;
+            const isFerr = cat === 'ferramenta';
+            document.getElementById('item-role-group').classList.toggle('hidden', isFerr);
+            document.getElementById('item-etype-group').classList.toggle('hidden', !isFerr);
+            document.getElementById('item-client-group').classList.toggle('hidden', !isFerr);
+            document.getElementById('item-name-label').innerText = isFerr ? 'Descrição / Fornecedor' : 'Nome do Integrante';
+            document.getElementById('item-month-label').innerText = isFerr ? 'Mês de Referência / Início' : 'Mês de Início';
+            document.getElementById('item-value-label').innerText = isFerr ? 'Valor do Custo (R$)' : 'Salário/Custo Fixo Mensal (R$)';
+            document.getElementById('item-hint').innerText = isFerr
+                ? 'Ferramenta/Fornecedor: sai ANTES da margem (impacta o Faturamento Líquido).'
+                : 'Equipe/Manutenção: sai DEPOIS da margem (impacta o Lucro Final).';
         };
 
-        window.appActions.saveTeam = async () => {
-            if (!state.user) return;
-            const id = document.getElementById('team-id').value;
-            const name = document.getElementById('team-name').value;
-            if(!name) return showToast('Nome obrigatório', 'error');
+        // category: 'equipe' | 'manutencao' | 'ferramenta'
+        window.appActions.openItemModal = (category = 'equipe', id = '') => {
+            let rec = {};
+            let cat = category;
+            if (id) {
+                if (state.expenses.some(x => x.id === id)) {
+                    rec = state.expenses.find(x => x.id === id) || {};
+                    cat = 'ferramenta';
+                } else {
+                    rec = state.team.find(x => x.id === id) || {};
+                    cat = rec.itemType || 'equipe';
+                }
+            }
 
-            const data = {
-                name,
-                role: document.getElementById('team-role').value,
-                startMonth: document.getElementById('team-startMonth').value,
-                cost: getCurrencyInput('team-cost')
-            };
+            document.getElementById('item-id').value = id || '';
+            document.getElementById('item-category').value = cat;
+            document.getElementById('item-modal-title').innerText = id ? 'Editar Custo' : 'Novo Custo';
 
-            const coll = collection(db, 'artifacts', appId, 'users', state.user.uid, 'team');
-            try {
-                if (id) await updateDoc(doc(coll, id), data);
-                else await addDoc(coll, data);
-                showToast('Membro salvo!');
-                window.appActions.closeModal();
-            } catch(e) { showToast('Erro', 'error'); }
-        };
-
-        window.appActions.deleteTeam = async (id) => {
-            if (!state.user) return;
-            await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'team', id));
-            showToast('Membro removido');
-        };
-
-        // ================= CRUD EXPENSES =================
-        window.appActions.openExpenseModal = (id) => {
-            document.getElementById('expense-modal-title').innerText = id ? 'Editar Custo' : 'Novo Custo';
-            const e = state.expenses.find(x => x.id === id) || {};
-
-            const sel = document.getElementById('expense-clientId');
+            const sel = document.getElementById('item-clientId');
             sel.innerHTML = `<option value="">Custo Geral (Não Alocado)</option>` + state.clients.filter(c => c.status !== 'Churn').map(c => `<option value="${c.id}">${escapeHTML(c.name)}</option>`).join('');
 
-            document.getElementById('expense-id').value = id || '';
-            document.getElementById('expense-name').value = e.name || '';
-            document.getElementById('expense-type').value = e.type || 'recorrente';
-            document.getElementById('expense-month').value = e.month || state.selectedMonth;
-            sel.value = e.clientId || '';
-            setCurrencyInput('expense-amount', e.amount);
+            document.getElementById('item-name').value = rec.name || '';
+            if (cat === 'ferramenta') {
+                document.getElementById('item-role').value = '';
+                document.getElementById('item-expense-type').value = rec.type || 'recorrente';
+                document.getElementById('item-month').value = rec.month || state.selectedMonth;
+                sel.value = rec.clientId || '';
+                setCurrencyInput('item-value', rec.amount);
+            } else {
+                document.getElementById('item-role').value = rec.role || '';
+                document.getElementById('item-month').value = rec.startMonth || state.selectedMonth;
+                setCurrencyInput('item-value', rec.cost);
+            }
 
-            showModalBase('modal-expense');
+            window.appActions.onItemCategoryChange();
+            showModalBase('modal-item');
         };
 
-        window.appActions.saveExpense = async () => {
+        window.appActions.saveItem = async () => {
             if (!state.user) return;
-            const id = document.getElementById('expense-id').value;
-            const name = document.getElementById('expense-name').value;
-            if(!name) return showToast('Descrição obrigatória', 'error');
+            const id = document.getElementById('item-id').value;
+            const cat = document.getElementById('item-category').value;
+            const name = document.getElementById('item-name').value;
+            if (!name) return showToast('Nome / Descrição obrigatório', 'error');
 
-            const data = {
-                name,
-                type: document.getElementById('expense-type').value,
-                month: document.getElementById('expense-month').value,
-                clientId: document.getElementById('expense-clientId').value,
-                amount: getCurrencyInput('expense-amount')
-            };
+            const targetColl = cat === 'ferramenta' ? 'expenses' : 'team';
+            const data = cat === 'ferramenta'
+                ? {
+                    name,
+                    type: document.getElementById('item-expense-type').value,
+                    month: document.getElementById('item-month').value,
+                    clientId: document.getElementById('item-clientId').value,
+                    amount: getCurrencyInput('item-value')
+                  }
+                : {
+                    name,
+                    role: document.getElementById('item-role').value,
+                    startMonth: document.getElementById('item-month').value,
+                    cost: getCurrencyInput('item-value'),
+                    itemType: cat
+                  };
 
-            const coll = collection(db, 'artifacts', appId, 'users', state.user.uid, 'expenses');
+            const base = ['artifacts', appId, 'users', state.user.uid];
             try {
-                if (id) await updateDoc(doc(coll, id), data);
-                else await addDoc(coll, data);
-                showToast('Custo salvo!');
+                if (id) {
+                    // Permite trocar de categoria movendo entre coleções (team <-> expenses)
+                    const oldColl = state.expenses.some(x => x.id === id) ? 'expenses' : (state.team.some(x => x.id === id) ? 'team' : targetColl);
+                    if (oldColl === targetColl) {
+                        await updateDoc(doc(db, ...base, targetColl, id), data);
+                    } else {
+                        await deleteDoc(doc(db, ...base, oldColl, id));
+                        await addDoc(collection(db, ...base, targetColl), data);
+                    }
+                } else {
+                    await addDoc(collection(db, ...base, targetColl), data);
+                }
+                showToast('Item salvo!');
                 window.appActions.closeModal();
+            } catch(e) { showToast('Erro ao salvar', 'error'); }
+        };
+
+        window.appActions.deleteItem = async (collName, id) => {
+            if (!state.user) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, collName, id));
+                showToast('Item removido');
             } catch(e) { showToast('Erro', 'error'); }
         };
 
-        window.appActions.deleteExpense = async (id) => {
-            if (!state.user) return;
-            await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'expenses', id));
-            showToast('Custo removido');
+        // Aliases de compatibilidade (chamadas antigas continuam funcionando)
+        window.appActions.openTeamModal = (id) => window.appActions.openItemModal('equipe', id || '');
+        window.appActions.openExpenseModal = (id) => window.appActions.openItemModal('ferramenta', id || '');
+        window.appActions.deleteTeam = (id) => window.appActions.deleteItem('team', id);
+        window.appActions.deleteExpense = (id) => window.appActions.deleteItem('expenses', id);
+
+        // ================= DETALHE DO FECHAMENTO (modal-history) =================
+        window.appActions.openHistoryModal = (month) => {
+            const c = state.closures.find(x => x.month === month);
+            if (!c) return;
+            const custoFerr = c.custoFerramenta !== undefined ? Number(c.custoFerramenta) : 0;
+            const custoEq = c.custoEquipe !== undefined ? Number(c.custoEquipe) : (Number(c.margemTotalRealizada||0) - Number(c.lucroLiquido||0));
+            const bruto = Number(c.mrrBrutoRealizado||0) + Number(c.otBrutoRealizado||0);
+
+            let memberRows;
+            if (c.memberMargins && Object.keys(c.memberMargins).length > 0) {
+                memberRows = Object.entries(c.memberMargins).map(([mid, val]) => {
+                    const m = state.team.find(x => x.id === mid);
+                    return `<div class="flex justify-between items-center bg-[#0a0a0a] border border-[#222] rounded-lg px-4 py-2.5">
+                        <span class="text-sm text-gray-300 font-medium">${m ? escapeHTML(m.name) : '<span class="text-gray-600">Membro removido</span>'}</span>
+                        <span class="text-sm font-bold text-emerald-400">${formatCurrency(val)}</span>
+                    </div>`;
+                }).join('');
+            } else {
+                memberRows = `<p class="text-xs text-gray-600 italic">Nenhum repasse registrado neste fechamento.</p>`;
+            }
+
+            document.getElementById('history-modal-title').innerText = 'Fechamento ' + escapeHTML(c.month);
+            document.getElementById('history-modal-content').innerHTML = `
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="p-4 rounded-xl bg-[#0a0a0a] border border-[#222]">
+                            <p class="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-1">Faturamento Bruto</p>
+                            <p class="text-xl font-black text-white">${formatCurrency(bruto)}</p>
+                        </div>
+                        <div class="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/30">
+                            <p class="text-[10px] uppercase font-bold text-emerald-500 tracking-widest mb-1">Margem DFC</p>
+                            <p class="text-xl font-black text-white">${formatCurrency(c.margemTotalRealizada)}</p>
+                        </div>
+                        <div class="p-4 rounded-xl ${Number(c.lucroLiquido||0)>=0?'bg-emerald-900/30 border-emerald-500/40':'bg-red-900/30 border-red-500/40'} border">
+                            <p class="text-[10px] uppercase font-bold text-white/70 tracking-widest mb-1">Lucro Líquido</p>
+                            <p class="text-xl font-black text-white">${formatCurrency(c.lucroLiquido)}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#0a0a0a] border border-[#222] rounded-xl p-5">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-[#222] pb-2">Cascata do Mês</h4>
+                        <div class="space-y-2.5 text-sm">
+                            <div class="flex justify-between"><span class="text-gray-500">MRR Bruto Realizado</span><span class="text-white font-medium">${formatCurrency(c.mrrBrutoRealizado)}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-500">One Time Realizado</span><span class="text-white font-medium">${formatCurrency(c.otBrutoRealizado)}</span></div>
+                            <div class="flex justify-between border-t border-[#222] pt-2.5"><span class="text-gray-500">− Ferramenta/Fornecedor (antes da margem)</span><span class="text-red-400 font-medium">-${formatCurrency(custoFerr)}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-500">= Margem DFC (×35%)</span><span class="text-emerald-400 font-bold">${formatCurrency(c.margemTotalRealizada)}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-500">− Equipe/Manutenção (depois da margem)</span><span class="text-red-400 font-medium">-${formatCurrency(custoEq)}</span></div>
+                            <div class="flex justify-between border-t border-[#333] pt-2.5"><span class="text-white font-black uppercase text-xs">Lucro Líquido</span><span class="font-black ${Number(c.lucroLiquido||0)>=0?'text-emerald-500':'text-red-500'}">${formatCurrency(c.lucroLiquido)}</span></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Repasse por Integrante</h4>
+                        <div class="space-y-2">${memberRows}</div>
+                    </div>
+                </div>
+            `;
+            if(window.lucide) window.lucide.createIcons();
+            showModalBase('modal-history');
         };
 
         // ================= TRANSAÇÕES (BAIXAS) =================
@@ -1315,6 +1385,16 @@
             const moTrans = state.transactions.filter(t => t.month === state.selectedMonth);
             const list = state.clients.filter(c => state.clientFilter === 'Todos' || c.phase === state.clientFilter);
 
+            // Clientes pendentes de pagamento SEMPRE no topo (baseado nas transactions do mês)
+            const isClientPending = (client) => {
+                if (client.status === 'Churn') return false;
+                const cTrans = moTrans.filter(t => t.clientId === client.id);
+                const recPend = Number(client.recurringValue||0) > 0 && !cTrans.find(t => t.type === 'recorrente');
+                const otPend = Number(client.oneTimeValue||0) > 0 && isClientOTActive(client, state.selectedMonth) && !cTrans.find(t => t.type === 'onetime');
+                return recPend || otPend;
+            };
+            list.sort((a, b) => (isClientPending(b) ? 1 : 0) - (isClientPending(a) ? 1 : 0));
+
             let html = `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div class="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide">
@@ -1349,20 +1429,20 @@
                 if(recVal > 0) {
                     recHtml = `<div class="flex items-center justify-between bg-[#0a0a0a] p-2 rounded-lg border border-[#1a1a1a]">
                         <div class="flex flex-col"><span class="text-[10px] text-gray-500 uppercase">MRR</span><span class="font-bold text-gray-200">${formatCurrency(recVal)}</span></div>
-                        ${recTrans ? `<button onclick="window.appActions.removeBaixa('${escapeHTML(recTrans.id)}')" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button onclick="window.appActions.darBaixa('${escapeHTML(client.id)}', ${recVal}, 'recorrente')" class="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-bold">Pagar</button>`}
+                        ${recTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(recTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${recVal}" data-btype="recorrente" class="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-bold">Pagar</button>`}
                     </div>`;
                 }
                 if(otVal > 0 && isClientOTActive(client, state.selectedMonth)) {
                     otHtml = `<div class="flex items-center justify-between bg-[#0a0a0a] p-2 rounded-lg border border-[#1a1a1a]">
                         <div class="flex flex-col"><span class="text-[10px] text-gray-500 uppercase">One Time</span><span class="font-bold text-gray-200">${formatCurrency(otVal)}</span></div>
-                        ${otTrans ? `<button onclick="window.appActions.removeBaixa('${escapeHTML(otTrans.id)}')" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button onclick="window.appActions.darBaixa('${escapeHTML(client.id)}', ${otVal}, 'onetime')" class="text-xs bg-[#222] text-white px-3 py-1.5 rounded-md border border-[#444] font-bold">Pagar</button>`}
+                        ${otTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(otTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${otVal}" data-btype="onetime" class="text-xs bg-[#222] text-white px-3 py-1.5 rounded-md border border-[#444] font-bold">Pagar</button>`}
                     </div>`;
                 }
 
                 return `
                     <div class="bg-[#111] border ${isChurn ? 'border-red-900/50 opacity-60' : 'border-[#222]'} rounded-2xl p-6 relative flex flex-col h-full">
                         ${isChurn ? `<div class="absolute -top-3 -right-3 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-lg rotate-12">CHURN</div>` : ''}
-                        <div class="flex-1 cursor-pointer" onclick="window.appActions.openClientModal('${escapeHTML(client.id)}')">
+                        <div class="flex-1 cursor-pointer" data-action="openClientModal" data-id="${escapeHTML(client.id)}">
                             <div class="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 class="font-black text-xl text-white">${escapeHTML(client.name)}</h3>
@@ -1385,7 +1465,7 @@
             let html = `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <h2 class="text-2xl font-bold text-white tracking-tight">Equipe DFC</h2>
-                    <button onclick="window.appActions.openTeamModal()" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Novo Integrante</button>
+                    <button onclick="window.appActions.openItemModal('equipe')" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Novo Integrante</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
             `;
@@ -1398,17 +1478,21 @@
                     const mCost = getMemberCostInMonth(member, state.selectedMonth);
                     const lucro = mrrMcGerado - mCost;
                     const startStr = member.startMonth ? member.startMonth.split('-').reverse().join('/') : 'Sempre Ativo';
+                    const itemCat = member.itemType || 'equipe';
+                    const catBadge = itemCat === 'manutencao'
+                        ? `<span class="text-orange-400 border border-orange-900/50 bg-orange-900/20 px-1 rounded ml-1">Manutenção</span>`
+                        : '';
 
                     return `
-                    <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col cursor-pointer" onclick="window.appActions.openTeamModal('${escapeHTML(member.id)}')">
+                    <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col cursor-pointer" data-action="openItemModal" data-cat="${itemCat}" data-id="${escapeHTML(member.id)}">
                         <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="event.stopPropagation(); window.appActions.deleteTeam('${escapeHTML(member.id)}')" class="w-8 h-8 bg-[#222] rounded-lg text-gray-400 hover:text-red-500 flex items-center justify-center"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                            <button data-action="deleteItem" data-coll="team" data-id="${escapeHTML(member.id)}" class="w-8 h-8 bg-[#222] rounded-lg text-gray-400 hover:text-red-500 flex items-center justify-center"><i data-lucide="trash" class="w-4 h-4"></i></button>
                         </div>
                         <div class="flex items-center gap-4 mb-6">
                             <div class="w-14 h-14 bg-red-800 rounded-xl flex items-center justify-center text-2xl font-black text-white">${escapeHTML(member.name).charAt(0).toUpperCase()}</div>
                             <div>
                                 <h3 class="font-black text-xl text-white">${escapeHTML(member.name)}</h3>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase">${escapeHTML(member.role)} <span class="text-blue-400 border border-blue-900/50 bg-blue-900/20 px-1 rounded ml-1">Início: ${startStr}</span></p>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase">${escapeHTML(member.role)} <span class="text-blue-400 border border-blue-900/50 bg-blue-900/20 px-1 rounded ml-1">Início: ${startStr}</span>${catBadge}</p>
                             </div>
                         </div>
                         <div class="space-y-1 bg-[#0a0a0a] rounded-xl p-4 border border-[#222]">
@@ -1425,7 +1509,7 @@
             html += `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-t border-[#222] pt-10">
                     <h2 class="text-2xl font-bold text-white tracking-tight">Custos & Fornecedores</h2>
-                    <button onclick="window.appActions.openExpenseModal()" class="bg-[#1a1a1a] border border-[#333] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Novo Custo</button>
+                    <button onclick="window.appActions.openItemModal('ferramenta')" class="bg-[#1a1a1a] border border-[#333] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Novo Custo</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             `;
@@ -1439,8 +1523,8 @@
                     return `
                         <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between">
                             <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="window.appActions.openExpenseModal('${escapeHTML(exp.id)}')" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                                <button onclick="window.appActions.deleteExpense('${escapeHTML(exp.id)}')" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400 hover:text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                                <button data-action="openItemModal" data-cat="ferramenta" data-id="${escapeHTML(exp.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <button data-action="deleteItem" data-coll="expenses" data-id="${escapeHTML(exp.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400 hover:text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
                             </div>
                             <h3 class="font-bold text-lg text-white mb-1 pr-16">${escapeHTML(exp.name)}</h3>
                             <div class="flex flex-wrap gap-2 mb-4">
@@ -1537,7 +1621,7 @@
             else {
                 state.closures.sort((a,b) => b.month.localeCompare(a.month)).forEach(c => {
                     html += `
-                    <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative flex flex-col shadow-lg">
+                    <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative flex flex-col shadow-lg cursor-pointer hover:border-[#3a3a3a] transition-colors" data-action="openHistoryModal" data-id="${escapeHTML(c.month)}">
                         <div class="flex items-center gap-4 mb-6">
                             <div class="w-14 h-14 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-gray-400 border border-[#333]"><i data-lucide="calendar-days" class="w-6 h-6"></i></div>
                             <div>
@@ -1660,6 +1744,22 @@
                 setTimeout(() => { login.classList.remove('opacity-0'); }, 50);
                 unsubListeners.forEach(fn => fn());
                 unsubListeners = [];
+            }
+        });
+
+        // ================= DELEGAÇÃO DE CLIQUES (data-action / data-id — evita interpolar ids inline e o "Unexpected token") =================
+        document.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-action]');
+            if (!el) return;
+            const d = el.dataset;
+            const A = window.appActions;
+            switch (d.action) {
+                case 'openClientModal': A.openClientModal(d.id); break;
+                case 'openItemModal': A.openItemModal(d.cat, d.id || ''); break;
+                case 'deleteItem': A.deleteItem(d.coll, d.id); break;
+                case 'darBaixa': A.darBaixa(d.id, Number(d.val), d.btype); break;
+                case 'removeBaixa': A.removeBaixa(d.id); break;
+                case 'openHistoryModal': A.openHistoryModal(d.id); break;
             }
         });
 
