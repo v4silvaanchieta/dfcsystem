@@ -1,0 +1,20 @@
+# Vercel
+.vercel
+
+# Dependências (não usadas — projeto estático, mas por segurança)
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Ambiente / segredos
+.env
+.env.local
+.env.*.local
+
+# SO / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
