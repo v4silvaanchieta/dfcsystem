@@ -484,12 +484,37 @@
             return (Number(val) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
+        // ===== CÁLCULO EM CASCATA (CORAÇÃO DO SISTEMA — validado, não alterar a ordem) =====
+        // 1) Faturamento Bruto -> 2) Royalties 15% (x0.85) -> 3) Impostos 14,25% (x0.8575)
+        // -> 4) MENOS custos "Ferramenta/Fornecedor" (Fat. Líquido) -> 5) Margem DFC (x0.35)
+        // -> 6) MENOS custos "Equipe/Manutenção" = Lucro Líquido
+        function calcFinancials(fatBruto, custoFerramenta = 0, custoTimeManut = 0) {
+            const bruto = Number(fatBruto) || 0;
+            const aposRoyalties = bruto * 0.85;              // 2. Royalties 15%
+            const aposImpostos = aposRoyalties * 0.8575;     // 3. Impostos 14,25%
+            const fatLiquido = aposImpostos - (Number(custoFerramenta) || 0); // 4. Faturamento Líquido
+            const margemDFC = fatLiquido * 0.35;             // 5. Margem DFC Realizada
+            const lucroLiquido = margemDFC - (Number(custoTimeManut) || 0);   // 6. Lucro Líquido
+            return { fatBruto: bruto, aposRoyalties, aposImpostos, fatLiquido, margemDFC, lucroLiquido };
+        }
+
+        // Margem "limpa" de um valor isolado (sem custos) — usada nos previews do modal e por transação.
+        // Equivale a calcFinancials(val, 0, 0).margemDFC — idêntica à fórmula validada (0.85 x 0.8575 x 0.35).
         function calcMargin(val) {
             if (!val) return 0;
-            const mrrBruto = Number(val);
-            const lucroLiquido = (mrrBruto * 0.85) * 0.8575;
-            const margemContribuicao = lucroLiquido * 0.35;
-            return margemContribuicao;
+            return calcFinancials(Number(val), 0, 0).margemDFC;
+        }
+
+        // Soma os custos "Ferramenta/Fornecedor" alocados a UM projeto no mês (entra no passo 4 da cascata).
+        function getClientToolCostInMonth(clientId, targetMonth) {
+            let total = 0;
+            state.expenses.forEach(e => {
+                if (e.clientId !== clientId) return;
+                if (e.type === 'unico' && e.month && e.month !== targetMonth) return;
+                if ((e.type === 'recorrente' || !e.type) && e.month && e.month > targetMonth) return;
+                total += Number(e.amount || 0);
+            });
+            return total;
         }
 
         function getMemberPct(client, memberId) {
@@ -900,15 +925,17 @@
             if (!state.user) return;
             const moTrans = state.transactions.filter(t => t.month === state.selectedMonth);
 
-            let realMRR = 0, realOT = 0, realMargin = 0;
+            let realMRR = 0, realOT = 0;
             moTrans.forEach(t => {
                 if (t.type === 'recorrente') realMRR += Number(t.value || 0);
                 if (t.type === 'onetime') realOT += Number(t.value || 0);
-                realMargin += t.marginValue !== undefined ? Number(t.marginValue) : calcMargin(Number(t.value || 0));
             });
 
-            const { custosTotais } = getCalculatedCosts(state.selectedMonth);
-            const lucroLiquido = realMargin - custosTotais;
+            // Cascata DFC: "Ferramenta/Fornecedor" (cVarFornecedores) sai ANTES do x0.35; "Equipe" (cFixo) sai DEPOIS.
+            const { cFixo, cVarFornecedores, custosTotais } = getCalculatedCosts(state.selectedMonth);
+            const fin = calcFinancials(realMRR + realOT, cVarFornecedores, cFixo);
+            const realMargin = fin.margemDFC;
+            const lucroLiquido = fin.lucroLiquido;
 
             const memberMargins = {};
             state.team.forEach(m => {
@@ -926,6 +953,8 @@
                 mrrBrutoRealizado: realMRR,
                 otBrutoRealizado: realOT,
                 margemTotalRealizada: realMargin,
+                custoFerramenta: cVarFornecedores,
+                custoEquipe: cFixo,
                 custosTotais,
                 lucroLiquido,
                 memberMargins,
@@ -1009,23 +1038,27 @@
                 if (state.filterMode === 'forecast') {
                     mainLabels = ['Projeção Atual'];
                     const activeC = state.clients.filter(c => c.status !== 'Churn');
-                    const prevMarginRec = activeC.reduce((a, c) => a + calcMargin(Number(c.recurringValue||0)), 0);
-                    const prevMarginOT = activeC.reduce((a, c) => isClientOTActive(c, state.selectedMonth) ? a + calcMargin(Number(c.oneTimeValue||0)) : a, 0);
-                    mainFaturamento = [prevMarginRec + prevMarginOT];
-
-                    const { custosTotais } = getCalculatedCosts(state.selectedMonth);
-                    mainCustos = [custosTotais];
+                    const prevMRR = activeC.reduce((a, c) => a + Number(c.recurringValue||0), 0);
+                    const prevOT = activeC.reduce((a, c) => isClientOTActive(c, state.selectedMonth) ? a + Number(c.oneTimeValue||0) : a, 0);
+                    const { cFixo, cVarFornecedores } = getCalculatedCosts(state.selectedMonth);
+                    const fin = calcFinancials(prevMRR + prevOT, cVarFornecedores, cFixo);
+                    mainFaturamento = [fin.margemDFC];
+                    mainCustos = [cFixo];
                 } else if (state.filterMode === 'month') {
                     mainLabels = [state.selectedMonth];
                     const closedMonth = state.closures.find(c => c.month === state.selectedMonth);
                     if (closedMonth) {
-                        mainFaturamento = [Number(closedMonth.margemTotalRealizada || 0)];
-                        mainCustos = [Number(closedMonth.custosTotais || 0)];
+                        const fatMargin = Number(closedMonth.margemTotalRealizada || 0);
+                        mainFaturamento = [fatMargin];
+                        mainCustos = [fatMargin - Number(closedMonth.lucroLiquido || 0)];
                     } else {
                         const moTrans = state.transactions.filter(t => t.month === state.selectedMonth);
-                        mainFaturamento = [moTrans.reduce((a, c) => a + (c.marginValue !== undefined ? Number(c.marginValue) : calcMargin(Number(c.value || 0))), 0)];
-                        const { custosTotais } = getCalculatedCosts(state.selectedMonth);
-                        mainCustos = [custosTotais];
+                        const realMRR = moTrans.filter(t => t.type === 'recorrente').reduce((a, c) => a + Number(c.value || 0), 0);
+                        const realOT = moTrans.filter(t => t.type === 'onetime').reduce((a, c) => a + Number(c.value || 0), 0);
+                        const { cFixo, cVarFornecedores } = getCalculatedCosts(state.selectedMonth);
+                        const fin = calcFinancials(realMRR + realOT, cVarFornecedores, cFixo);
+                        mainFaturamento = [fin.margemDFC];
+                        mainCustos = [cFixo];
                     }
                 } else {
                     const isAll = state.filterMode === 'all';
@@ -1033,7 +1066,7 @@
                     const sorted = [...yearClosures].sort((a,b) => a.month.localeCompare(b.month));
                     mainLabels = sorted.map(c => { const p = c.month.split('-'); return p[1] + '/' + p[0].substring(2); });
                     mainFaturamento = sorted.map(c => Number(c.margemTotalRealizada || 0));
-                    mainCustos = sorted.map(c => Number(c.custosTotais || 0));
+                    mainCustos = sorted.map(c => Number(c.margemTotalRealizada || 0) - Number(c.lucroLiquido || 0));
                 }
 
                 if(state.chartInstance) state.chartInstance.destroy();
@@ -1160,12 +1193,10 @@
                 const prevOT = activeC.reduce((a, c) => isClientOTActive(c, state.selectedMonth) ? a + Number(c.oneTimeValue || 0) : a, 0);
                 const totalFaturamentoPrevisto = prevMRR + prevOT;
 
-                const prevMarginRec = activeC.reduce((a, c) => a + calcMargin(Number(c.recurringValue||0)), 0);
-                const prevMarginOT = activeC.reduce((a, c) => isClientOTActive(c, state.selectedMonth) ? a + calcMargin(Number(c.oneTimeValue||0)) : a, 0);
-                const totalMargemPrevista = prevMarginRec + prevMarginOT;
-
                 const { cFixo, cVarFornecedores, custosTotais } = getCalculatedCosts(state.selectedMonth);
-                const lucroPrevisto = totalMargemPrevista - custosTotais;
+                const finPrev = calcFinancials(totalFaturamentoPrevisto, cVarFornecedores, cFixo);
+                const totalMargemPrevista = finPrev.margemDFC;
+                const lucroPrevisto = finPrev.lucroLiquido;
 
                 infoText = `<strong>Visão Prevista:</strong> Projetando a fotografia do momento como se todas as receitas ativas fossem pagas neste mês.`;
                 totalsHTML = `
@@ -1176,7 +1207,7 @@
                     <div class="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/20 to-[#0a0a0a] border border-emerald-900/30 shadow-lg relative group">
                         <h3 class="text-emerald-500 text-xs uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Margem Prevista (DFC)</h3>
                         <div class="text-3xl font-bold text-white mb-1">${formatCurrency(totalMargemPrevista)}</div>
-                        <p class="text-xs text-gray-500 font-medium mt-2 border-t border-emerald-900/30 pt-2 flex justify-between"><span>Custos Totais (Eqp+Forn):</span><span class="text-red-400 font-bold">-${formatCurrency(custosTotais)}</span></p>
+                        <p class="text-xs text-gray-500 font-medium mt-2 border-t border-emerald-900/30 pt-2 flex justify-between"><span>Custos Equipe (Forn. já na margem):</span><span class="text-red-400 font-bold">-${formatCurrency(cFixo)}</span></p>
                     </div>
                     <div class="p-6 rounded-2xl ${lucroPrevisto >= 0 ? 'bg-gradient-to-br from-emerald-900/40 border-emerald-500/50' : 'bg-gradient-to-br from-red-900/40 border-red-500/50'} border shadow-lg relative group">
                         <h3 class="text-white/70 text-xs uppercase font-bold tracking-widest mb-2">Lucro Potencial</h3>
@@ -1191,7 +1222,7 @@
                 const realMRR = closuresToUse.reduce((a, c) => a + Number(c.mrrBrutoRealizado||0), 0);
                 const realMargin = closuresToUse.reduce((a, c) => a + Number(c.margemTotalRealizada||0), 0);
                 const lucro = closuresToUse.reduce((a, c) => a + Number(c.lucroLiquido||0), 0);
-                const cTotais = closuresToUse.reduce((a, c) => a + Number(c.custosTotais||0), 0);
+                const cTotais = realMargin - lucro;
 
                 infoText = `<strong>Visão Consolidada (${contextYear}):</strong> Soma baseada em todos os meses que já foram fechados e travados.`;
                 totalsHTML = `
@@ -1219,16 +1250,17 @@
                     realMRR = Number(closedMonth.mrrBrutoRealizado || 0);
                     realMargin = Number(closedMonth.margemTotalRealizada || 0);
                     lucro = Number(closedMonth.lucroLiquido || 0);
-                    cTotais = Number(closedMonth.custosTotais || 0);
+                    cTotais = realMargin - lucro;
                 } else {
                     const moTrans = state.transactions.filter(t => t.month === state.selectedMonth);
                     realMRR = moTrans.filter(t => t.type === 'recorrente').reduce((a, c) => a + Number(c.value || 0), 0);
                     realOT = moTrans.filter(t => t.type === 'onetime').reduce((a, c) => a + Number(c.value || 0), 0);
-                    realMargin = moTrans.reduce((a, c) => a + (c.marginValue !== undefined ? Number(c.marginValue) : calcMargin(Number(c.value || 0))), 0);
 
                     const calculated = getCalculatedCosts(state.selectedMonth);
-                    cTotais = calculated.custosTotais;
-                    lucro = realMargin - cTotais;
+                    const finMes = calcFinancials(realMRR + realOT, calculated.cVarFornecedores, calculated.cFixo);
+                    realMargin = finMes.margemDFC;
+                    cTotais = calculated.cFixo;
+                    lucro = finMes.lucroLiquido;
                 }
 
                 infoText = `<strong>Visão do Mês (${state.selectedMonth}):</strong> Cruzamento das receitas efetivamente recebidas contra os custos configurados para este mês.`;
@@ -1457,8 +1489,8 @@
                 const rR = recT?recT.value:0;
                 const rO = otT?otT.value:0;
 
-                const mTotal = (recT ? (recT.marginValue !== undefined ? Number(recT.marginValue) : calcMargin(Number(recT.value||0))) : 0) +
-                               (otT ? (otT.marginValue !== undefined ? Number(otT.marginValue) : calcMargin(Number(otT.value||0))) : 0);
+                const clientForn = getClientToolCostInMonth(client.id, state.selectedMonth);
+                const mTotal = calcFinancials(rR + rO, clientForn, 0).margemDFC;
 
                 const isPaid = (pR===0 || rR>0) && (pO===0 || rO>0);
                 const isPend = (pR>0 && rR===0) || (pO>0 && rO===0);
@@ -1516,7 +1548,7 @@
                         <div class="bg-[#0a0a0a] rounded-xl p-4 border border-[#222] space-y-3 mb-4 flex-1">
                             <div class="flex justify-between items-center"><span class="text-[10px] text-gray-500 uppercase font-bold">MRR Bruto</span><span class="font-bold text-white text-sm">${formatCurrency(c.mrrBrutoRealizado)}</span></div>
                             <div class="flex justify-between items-center border-t border-[#222] pt-3"><span class="text-[10px] text-gray-500 uppercase font-bold">Margem</span><span class="font-bold text-emerald-400 text-sm">+${formatCurrency(c.margemTotalRealizada)}</span></div>
-                            <div class="flex justify-between items-center border-t border-[#222] pt-3"><span class="text-[10px] text-gray-500 uppercase font-bold">Custos Totais</span><span class="font-bold text-red-400 text-sm">-${formatCurrency(c.custosTotais)}</span></div>
+                            <div class="flex justify-between items-center border-t border-[#222] pt-3"><span class="text-[10px] text-gray-500 uppercase font-bold">Custos Equipe</span><span class="font-bold text-red-400 text-sm">-${formatCurrency(Number(c.margemTotalRealizada||0) - Number(c.lucroLiquido||0))}</span></div>
                         </div>
                         <div class="pt-4 border-t border-[#222] flex justify-between items-center">
                             <span class="text-[10px] text-gray-400 uppercase font-black">Líquido</span>
