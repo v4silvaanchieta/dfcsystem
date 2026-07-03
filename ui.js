@@ -755,9 +755,8 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                     const typeStr = item.type === 'unico' ? 'Único' : 'Recorrente';
                     const monthStr = item.startMonth ? item.startMonth.split('-').reverse().join('/') : 'Sempre';
                     return `
-                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between">
+                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between cursor-pointer" data-action="openItemModal" data-cat="manutencao" data-id="${escapeHTML(item.id)}">
                             <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button data-action="openItemModal" data-cat="manutencao" data-id="${escapeHTML(item.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
                                 <button data-action="deleteItem" data-coll="team" data-id="${escapeHTML(item.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400 hover:text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
                             </div>
                             <h3 class="font-bold text-lg text-white mb-1 pr-16">${escapeHTML(item.name)}</h3>
@@ -775,9 +774,8 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                     const monthStr = exp.month ? exp.month.split('-').reverse().join('/') : 'Sempre';
 
                     return `
-                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between">
+                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between cursor-pointer" data-action="openItemModal" data-cat="ferramenta" data-id="${escapeHTML(exp.id)}">
                             <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button data-action="openItemModal" data-cat="ferramenta" data-id="${escapeHTML(exp.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
                                 <button data-action="deleteItem" data-coll="expenses" data-id="${escapeHTML(exp.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400 hover:text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
                             </div>
                             <h3 class="font-bold text-lg text-white mb-1 pr-16">${escapeHTML(exp.name)}</h3>
