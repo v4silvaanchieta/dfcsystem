@@ -179,15 +179,19 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         window.appActions.onItemCategoryChange = () => {
             const cat = document.getElementById('item-category').value;
             const isFerr = cat === 'ferramenta';
-            document.getElementById('item-role-group').classList.toggle('hidden', isFerr);
-            document.getElementById('item-etype-group').classList.toggle('hidden', !isFerr);
+            const isManut = cat === 'manutencao';
+            const showType = isFerr || isManut; // Tipo de Custo (Único/Recorrente): ferramenta E manutenção
+            document.getElementById('item-role-group').classList.toggle('hidden', cat !== 'equipe');
+            document.getElementById('item-etype-group').classList.toggle('hidden', !showType);
             document.getElementById('item-client-group').classList.toggle('hidden', !isFerr);
-            document.getElementById('item-name-label').innerText = isFerr ? 'Descrição / Fornecedor' : 'Nome do Integrante';
-            document.getElementById('item-month-label').innerText = isFerr ? 'Mês de Referência / Início' : 'Mês de Início';
-            document.getElementById('item-value-label').innerText = isFerr ? 'Valor do Custo (R$)' : 'Salário/Custo Fixo Mensal (R$)';
+            document.getElementById('item-name-label').innerText = isFerr ? 'Descrição / Fornecedor' : (isManut ? 'Descrição da Manutenção' : 'Nome do Integrante');
+            document.getElementById('item-month-label').innerText = showType ? 'Mês de Referência / Início' : 'Mês de Início';
+            document.getElementById('item-value-label').innerText = isFerr ? 'Valor do Custo (R$)' : (isManut ? 'Valor da Manutenção (R$)' : 'Salário/Custo Fixo Mensal (R$)');
             document.getElementById('item-hint').innerText = isFerr
                 ? 'Ferramenta/Fornecedor: sai ANTES da margem (impacta o Faturamento Líquido).'
-                : 'Equipe/Manutenção: sai DEPOIS da margem (impacta o Lucro Final).';
+                : (isManut
+                    ? 'Manutenção: sai DEPOIS da margem (impacta o Lucro). Pode ser Única ou Recorrente.'
+                    : 'Equipe: custo fixo recorrente, sai DEPOIS da margem (impacta o Lucro).');
         };
 
         // category: 'equipe' | 'manutencao' | 'ferramenta'
@@ -220,6 +224,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 setCurrencyInput('item-value', rec.amount);
             } else {
                 document.getElementById('item-role').value = rec.role || '';
+                document.getElementById('item-expense-type').value = rec.type || 'recorrente';
                 document.getElementById('item-month').value = rec.startMonth || state.selectedMonth;
                 setCurrencyInput('item-value', rec.cost);
             }
@@ -479,8 +484,9 @@ if (typeof window !== 'undefined') window.showToast = showToast;
 
         function getDashboardHTML() {
             const mode = state.filterMode;
-            if (state.team.length > 0 && (!state.selectedMemberId || !state.team.find(m => m.id === state.selectedMemberId))) {
-                state.selectedMemberId = state.team[0].id;
+            const equipeChart = state.team.filter(m => (m.itemType || 'equipe') !== 'manutencao');
+            if (equipeChart.length > 0 && (!state.selectedMemberId || !equipeChart.find(m => m.id === state.selectedMemberId))) {
+                state.selectedMemberId = equipeChart[0].id;
             }
 
             let totalsHTML = '', infoText = '';
@@ -599,7 +605,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                                 <h3 class="text-xl font-bold text-white tracking-tight">Desempenho da Equipe</h3>
                                 <select onchange="window.appActions.setMemberChart(this.value)" class="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:border-red-500">
-                                    ${state.team.length===0?'<option>Sem Equipe</option>':state.team.map(m=>`<option value="${escapeHTML(m.id)}" ${state.selectedMemberId===m.id?'selected':''}>${escapeHTML(m.name)}</option>`).join('')}
+                                    ${equipeChart.length===0?'<option>Sem Equipe</option>':equipeChart.map(m=>`<option value="${escapeHTML(m.id)}" ${state.selectedMemberId===m.id?'selected':''}>${escapeHTML(m.name)}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="h-80 w-full relative flex-1"><canvas id="memberChart"></canvas></div>
@@ -698,9 +704,10 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
             `;
 
-            if(state.team.length === 0) html += `<div class="col-span-full py-10 text-center border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum membro cadastrado.</div>`;
+            const equipeMembers = state.team.filter(m => (m.itemType || 'equipe') !== 'manutencao');
+            if(equipeMembers.length === 0) html += `<div class="col-span-full py-10 text-center border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum membro cadastrado.</div>`;
             else {
-                html += state.team.map(member => {
+                html += equipeMembers.map(member => {
                     const memberClients = state.clients.filter(c => c.status !== 'Churn');
                     const mrrMcGerado = memberClients.reduce((acc, c) => acc + (calcMargin(Number(c.recurringValue||0)) * getMemberPct(c, member.id)), 0);
                     const mCost = getMemberCostInMonth(member, state.selectedMonth);
@@ -741,8 +748,27 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             `;
-            if(state.expenses.length === 0) html += `<div class="col-span-full py-10 text-center border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum custo cadastrado.</div>`;
+            const manutencaoItems = state.team.filter(m => m.itemType === 'manutencao');
+            if(manutencaoItems.length === 0 && state.expenses.length === 0) html += `<div class="col-span-full py-10 text-center border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum custo cadastrado.</div>`;
             else {
+                html += manutencaoItems.map(item => {
+                    const typeStr = item.type === 'unico' ? 'Único' : 'Recorrente';
+                    const monthStr = item.startMonth ? item.startMonth.split('-').reverse().join('/') : 'Sempre';
+                    return `
+                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between">
+                            <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button data-action="openItemModal" data-cat="manutencao" data-id="${escapeHTML(item.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <button data-action="deleteItem" data-coll="team" data-id="${escapeHTML(item.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400 hover:text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                            </div>
+                            <h3 class="font-bold text-lg text-white mb-1 pr-16">${escapeHTML(item.name)}</h3>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <p class="text-[9px] font-bold uppercase tracking-wider text-orange-400 bg-orange-900/20 border-orange-900/50 px-2 py-0.5 rounded border">Manutenção</p>
+                                <p class="text-[9px] font-bold uppercase tracking-wider text-blue-400 bg-blue-900/20 border-blue-900/50 px-2 py-0.5 rounded border">${typeStr} (${monthStr})</p>
+                            </div>
+                            <div class="text-2xl font-black text-red-400 mt-2">-${formatCurrency(item.cost)}</div>
+                        </div>
+                    `;
+                }).join('');
                 html += state.expenses.map(exp => {
                     const client = state.clients.find(c => c.id === exp.clientId);
                     const typeStr = exp.type === 'unico' ? 'Único' : 'Recorrente';

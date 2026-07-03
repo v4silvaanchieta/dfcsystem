@@ -131,7 +131,8 @@ window.appActions = window.appActions || {};
                     role: document.getElementById('item-role').value,
                     startMonth: document.getElementById('item-month').value,
                     cost: getCurrencyInput('item-value'),
-                    itemType: cat
+                    itemType: cat,
+                    type: document.getElementById('item-expense-type').value // 'recorrente' | 'unico' (usado na Manutenção)
                   };
 
             const base = ['artifacts', appId, 'users', state.user.uid];

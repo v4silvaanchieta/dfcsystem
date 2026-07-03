@@ -77,6 +77,11 @@ if (typeof window !== 'undefined') window.escapeHTML = escapeHTML;
 
         function getMemberCostInMonth(member, targetMonth) {
             if (!member) return 0;
+            // Manutenção Única: só pesa no mês de referência (igual custo único de ferramenta, mas DEPOIS da margem).
+            if (member.itemType === 'manutencao' && member.type === 'unico') {
+                return (member.startMonth && member.startMonth === targetMonth) ? Number(member.cost || 0) : 0;
+            }
+            // Equipe e Manutenção Recorrente: custo a partir do mês de início.
             if (member.startMonth && member.startMonth > targetMonth) return 0;
             return Number(member.cost || 0);
         }
