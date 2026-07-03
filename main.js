@@ -290,6 +290,7 @@ window.appActions = window.appActions || {};
             unsubListeners.push(onSnapshot(collection(db, `${userDocPath}/team`), s => { state.team = s.docs.map(d => ({id: d.id, ...d.data()})); renderContent(); }, errCb));
             unsubListeners.push(onSnapshot(collection(db, `${userDocPath}/expenses`), s => { state.expenses = s.docs.map(d => ({id: d.id, ...d.data()})); renderContent(); }, errCb));
             unsubListeners.push(onSnapshot(collection(db, `${userDocPath}/monthly_closures`), s => { state.closures = s.docs.map(d => ({id: d.id, ...d.data()})); updateYearOptions(); renderContent(); }, errCb));
+            unsubListeners.push(onSnapshot(collection(db, `${userDocPath}/tasks`), s => { state.tasks = s.docs.map(d => ({id: d.id, ...d.data()})); renderContent(); }, errCb));
         }
 
         onAuthStateChanged(auth, user => {
@@ -316,6 +317,110 @@ window.appActions = window.appActions || {};
             }
         });
 
+        // ================= TAREFAS / OPERAÇÃO (Kanban) =================
+        const TASK_ORDER = ['solicitada', 'analise', 'executando', 'solucionado'];
+
+        window.appActions.saveTask = async () => {
+            if (!state.user) return;
+            const id = document.getElementById('task-id').value;
+            const title = document.getElementById('task-title').value.trim();
+            if (!title) return showToast('Título da tarefa é obrigatório', 'error');
+
+            const clientId = document.getElementById('task-clientId').value;
+            const supplier = document.getElementById('task-supplier').value.trim();
+            const cost = getCurrencyInput('task-cost');
+            const dueDate = document.getElementById('task-dueDate').value;
+
+            const stakeholders = [];
+            document.querySelectorAll('.stakeholder-row').forEach(row => {
+                const name = row.querySelector('.stake-name').value.trim();
+                const role = row.querySelector('.stake-role').value.trim();
+                const phone = row.querySelector('.stake-phone').value.trim();
+                if (name || role || phone) stakeholders.push({ name, role, phone });
+            });
+
+            const tags = document.getElementById('task-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+
+            const base = ['artifacts', appId, 'users', state.user.uid];
+            const existing = id ? state.tasks.find(t => t.id === id) : null;
+            let linkedExpenseId = existing && existing.linkedExpenseId ? existing.linkedExpenseId : '';
+
+            try {
+                // ===== MÁGICA: Fornecedor Vinculado + Custo (>0) => cria/atualiza uma despesa (ferramenta, PRÉ-margem) =====
+                if (supplier && cost > 0) {
+                    const dueMonth = dueDate ? dueDate.substring(0, 7) : state.selectedMonth;
+                    const expenseData = {
+                        name: supplier,
+                        type: 'unico',              // custo pontual da solução
+                        month: dueMonth,            // derivado da Data de Vencimento (YYYY-MM)
+                        clientId: clientId || '',
+                        amount: cost,
+                        itemType: 'ferramenta'      // Pré-Margem
+                    };
+                    if (linkedExpenseId && state.expenses.some(e => e.id === linkedExpenseId)) {
+                        await updateDoc(doc(db, ...base, 'expenses', linkedExpenseId), expenseData);
+                    } else {
+                        const ref = await addDoc(collection(db, ...base, 'expenses'), expenseData);
+                        linkedExpenseId = ref.id;
+                    }
+                } else if (linkedExpenseId && state.expenses.some(e => e.id === linkedExpenseId)) {
+                    // Removeram o fornecedor/custo => a despesa vinculada deixa de existir
+                    await deleteDoc(doc(db, ...base, 'expenses', linkedExpenseId));
+                    linkedExpenseId = '';
+                }
+
+                const data = {
+                    title,
+                    clientId,
+                    status: document.getElementById('task-status').value || 'solicitada',
+                    requestedBy: document.getElementById('task-requestedBy').value.trim(),
+                    supplier,
+                    cost,
+                    dueDate,
+                    tags,
+                    links: {
+                        senhas: document.getElementById('task-link-senhas').value.trim(),
+                        cronograma: document.getElementById('task-link-cronograma').value.trim(),
+                        contrato: document.getElementById('task-link-contrato').value.trim()
+                    },
+                    stakeholders,
+                    linkedExpenseId,
+                    updatedAt: serverTimestamp()
+                };
+
+                if (id) await updateDoc(doc(db, ...base, 'tasks', id), data);
+                else await addDoc(collection(db, ...base, 'tasks'), { ...data, createdAt: serverTimestamp() });
+
+                showToast('Tarefa salva!');
+                window.appActions.closeModal();
+            } catch (e) { console.error(e); showToast('Erro ao salvar tarefa', 'error'); }
+        };
+
+        window.appActions.deleteTask = async (id) => {
+            if (!state.user) return;
+            const base = ['artifacts', appId, 'users', state.user.uid];
+            const task = state.tasks.find(t => t.id === id);
+            try {
+                if (task && task.linkedExpenseId && state.expenses.some(e => e.id === task.linkedExpenseId)) {
+                    await deleteDoc(doc(db, ...base, 'expenses', task.linkedExpenseId));
+                }
+                await deleteDoc(doc(db, ...base, 'tasks', id));
+                showToast('Tarefa removida');
+            } catch (e) { showToast('Erro', 'error'); }
+        };
+
+        window.appActions.moveTask = async (id, dir) => {
+            if (!state.user) return;
+            const task = state.tasks.find(t => t.id === id);
+            if (!task) return;
+            const idx = TASK_ORDER.indexOf(task.status || 'solicitada');
+            const nidx = dir === 'next' ? Math.min(idx + 1, TASK_ORDER.length - 1) : Math.max(idx - 1, 0);
+            if (nidx === idx) return;
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'tasks', id), { status: TASK_ORDER[nidx] });
+            } catch (e) { showToast('Erro', 'error'); }
+        };
+
         // ================= DELEGAÇÃO DE CLIQUES (data-action / data-id — evita interpolar ids inline e o "Unexpected token") =================
         document.addEventListener('click', (e) => {
             const el = e.target.closest('[data-action]');
@@ -329,6 +434,9 @@ window.appActions = window.appActions || {};
                 case 'darBaixa': A.darBaixa(d.id, Number(d.val), d.btype); break;
                 case 'removeBaixa': A.removeBaixa(d.id); break;
                 case 'openHistoryModal': A.openHistoryModal(d.id); break;
+                case 'openTaskModal': A.openTaskModal(d.id || '', d.clientid || ''); break;
+                case 'deleteTask': A.deleteTask(d.id); break;
+                case 'moveTask': A.moveTask(d.id, d.dir); break;
             }
         });
 

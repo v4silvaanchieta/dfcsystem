@@ -9,7 +9,7 @@
             user: null,
             activeTab: 'dashboard',
             filterMode: 'month',
-            clients: [], transactions: [], team: [], closures: [], expenses: [],
+            clients: [], transactions: [], team: [], closures: [], expenses: [], tasks: [],
             selectedMonth: getInitialMonth(),
             selectedYear: new Date().getFullYear().toString(),
             clientFilter: 'Todos',

@@ -110,7 +110,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         window.appActions.setMemberChart = (id) => { state.selectedMemberId = id; renderChart(); };
 
         window.appActions.closeModal = () => {
-            const modals = ['modal-client', 'modal-item', 'modal-history', 'modal-member-dashboard'];
+            const modals = ['modal-client', 'modal-item', 'modal-history', 'modal-member-dashboard', 'modal-task'];
             modals.forEach(m => document.getElementById(m)?.classList.add('hidden'));
             document.getElementById('modal-backdrop').classList.add('hidden');
         };
@@ -297,6 +297,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             const tabs = [
                 { id: 'dashboard', icon: 'layout-dashboard', label: 'Painel DFC' },
                 { id: 'clients', icon: 'users', label: 'Clientes & Projetos' },
+                { id: 'operation', icon: 'kanban-square', label: 'Operação' },
                 { id: 'team', icon: 'briefcase', label: 'Equipe & Custos Fixos' },
                 { id: 'closure', icon: 'calculator', label: 'Fechamento do Mês' },
                 { id: 'history', icon: 'history', label: 'Histórico de Faturamento' }
@@ -472,6 +473,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
 
             if (state.activeTab === 'dashboard') { content.innerHTML = getDashboardHTML(); setTimeout(renderChart, 50); }
             else if (state.activeTab === 'clients') content.innerHTML = getClientsHTML();
+            else if (state.activeTab === 'operation') content.innerHTML = getOperationHTML();
             else if (state.activeTab === 'team') content.innerHTML = getTeamHTML();
             else if (state.activeTab === 'closure') content.innerHTML = getClosureHTML();
             else if (state.activeTab === 'history') content.innerHTML = getHistoryHTML();
@@ -659,6 +661,8 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                     }).join('');
                 }
 
+                const hasPendingTask = state.tasks.some(t => t.clientId === client.id && t.status !== 'solucionado');
+
                 let recHtml = '', otHtml = '';
                 if(recVal > 0) {
                     recHtml = `<div class="flex items-center justify-between bg-[#0a0a0a] p-2 rounded-lg border border-[#1a1a1a]">
@@ -681,6 +685,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                                 <div>
                                     <h3 class="font-black text-xl text-white">${escapeHTML(client.name)}</h3>
                                     <div class="flex flex-wrap gap-2 mt-2">
+                                        ${hasPendingTask ? `<span class="text-[10px] uppercase font-black text-white bg-red-600 px-2 py-0.5 rounded animate-pulse">Tarefa Pendente</span>` : ''}
                                         <span class="text-[10px] uppercase font-bold text-gray-300 bg-[#222] border border-[#333] px-2 py-0.5 rounded">${escapeHTML(client.phase)}</span>
                                         ${teamBadges}
                                     </div>
@@ -688,12 +693,146 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                                 <div class="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-gray-500"><i data-lucide="edit-3" class="w-4 h-4"></i></div>
                             </div>
                         </div>
-                        ${!isChurn ? `<div class="pt-4 border-t border-[#222] space-y-2 mt-auto">${recHtml}${otHtml}</div>` : ''}
+                        <div class="pt-4 border-t border-[#222] space-y-2 mt-auto">
+                            ${!isChurn ? `${recHtml}${otHtml}` : ''}
+                            <button data-action="openTaskModal" data-clientid="${escapeHTML(client.id)}" class="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 hover:text-white hover:bg-[#222] text-xs font-bold py-2 rounded-md flex items-center justify-center gap-2 transition-colors"><i data-lucide="clipboard-plus" class="w-3.5 h-3.5"></i> Gerar Tarefa</button>
+                        </div>
                     </div>
                 `;
             }).join('');
             return html + '</div>';
         }
+
+        // ================= OPERAÇÃO (KANBAN DE TAREFAS) =================
+        const TASK_COLUMNS = [
+            { key: 'solicitada', label: 'Demanda Solicitada', dot: 'bg-gray-500' },
+            { key: 'analise', label: 'Em Análise', dot: 'bg-amber-500' },
+            { key: 'executando', label: 'Executando', dot: 'bg-blue-500' },
+            { key: 'solucionado', label: 'Solucionado', dot: 'bg-emerald-500' }
+        ];
+
+        function getOperationHTML() {
+            const cols = TASK_COLUMNS.map((col, ci) => {
+                const tasks = state.tasks.filter(t => (t.status || 'solicitada') === col.key);
+                const cards = tasks.length === 0
+                    ? `<div class="text-center text-[11px] text-gray-600 border border-dashed border-[#222] rounded-xl py-8">Sem tarefas</div>`
+                    : tasks.map(t => {
+                        const client = state.clients.find(c => c.id === t.clientId);
+                        const due = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '—';
+                        const tagsHtml = (t.tags && t.tags.length) ? t.tags.map(tag => `<span class="text-[9px] uppercase font-bold text-gray-300 bg-[#1a1a1a] border border-[#333] px-1.5 py-0.5 rounded">${escapeHTML(tag)}</span>`).join('') : '';
+                        const stakeHtml = (t.stakeholders && t.stakeholders.length) ? t.stakeholders.map(s => {
+                            const phone = (s.phone || '').replace(/\D/g, '');
+                            const nameRole = escapeHTML(s.name || '') + (s.role ? ` · ${escapeHTML(s.role)}` : '');
+                            return phone
+                                ? `<a href="https://wa.me/55${phone}" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-[11px] text-emerald-400 hover:text-emerald-300"><i data-lucide="phone" class="w-3 h-3"></i> ${nameRole}</a>`
+                                : `<span class="flex items-center gap-1.5 text-[11px] text-gray-400"><i data-lucide="user" class="w-3 h-3"></i> ${nameRole}</span>`;
+                        }).join('') : '';
+                        const costHtml = Number(t.cost || 0) > 0 ? `<span class="text-red-400 font-bold">-${formatCurrency(t.cost)}</span>` : '';
+
+                        return `
+                            <div class="bg-[#111] border border-[#222] rounded-xl p-4 shadow-lg animate-fade-in cursor-pointer group hover:border-[#333] transition-colors" data-action="openTaskModal" data-id="${escapeHTML(t.id)}">
+                                <div class="flex justify-between items-start gap-2 mb-2">
+                                    <h4 class="font-bold text-sm text-white leading-snug">${escapeHTML(t.title || 'Sem título')}</h4>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                        <button data-action="deleteTask" data-id="${escapeHTML(t.id)}" class="w-6 h-6 flex items-center justify-center bg-[#1a1a1a] rounded text-gray-500 hover:text-red-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                    </div>
+                                </div>
+                                ${client ? `<p class="text-[10px] uppercase font-bold text-blue-400 mb-2">${escapeHTML(client.name)}</p>` : ''}
+                                ${tagsHtml ? `<div class="flex flex-wrap gap-1 mb-2">${tagsHtml}</div>` : ''}
+                                ${stakeHtml ? `<div class="space-y-1 mb-2 border-t border-[#1a1a1a] pt-2">${stakeHtml}</div>` : ''}
+                                <div class="flex justify-between items-center border-t border-[#1a1a1a] pt-2 mt-2">
+                                    <span class="text-[10px] text-gray-500 flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${due}</span>
+                                    ${costHtml}
+                                </div>
+                                <div class="flex justify-between gap-2 mt-3">
+                                    <button data-action="moveTask" data-id="${escapeHTML(t.id)}" data-dir="prev" class="flex-1 bg-[#1a1a1a] border border-[#333] rounded-md py-1.5 text-gray-400 hover:text-white flex items-center justify-center ${ci === 0 ? 'opacity-30 pointer-events-none' : ''}"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                                    <button data-action="moveTask" data-id="${escapeHTML(t.id)}" data-dir="next" class="flex-1 bg-[#1a1a1a] border border-[#333] rounded-md py-1.5 text-gray-400 hover:text-white flex items-center justify-center ${ci === TASK_COLUMNS.length - 1 ? 'opacity-30 pointer-events-none' : ''}"><i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                return `
+                    <div class="flex-1 min-w-[280px] bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-4 flex flex-col">
+                        <div class="flex items-center justify-between mb-4 px-1">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full ${col.dot}"></span>
+                                <h3 class="text-xs font-black uppercase tracking-wider text-gray-300">${col.label}</h3>
+                            </div>
+                            <span class="text-[10px] font-bold text-gray-500 bg-[#1a1a1a] px-2 py-0.5 rounded-full">${tasks.length}</span>
+                        </div>
+                        <div class="space-y-3 flex-1">${cards}</div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="animate-fade-in">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white tracking-tight">Operação</h2>
+                            <p class="text-sm text-gray-500 mt-1">Kanban de tarefas interligado a Clientes e Finanças.</p>
+                        </div>
+                        <button data-action="openTaskModal" data-id="" data-clientid="" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-200"><i data-lucide="plus" class="w-4 h-4"></i> Nova Tarefa</button>
+                    </div>
+                    <div class="flex gap-4 overflow-x-auto pb-4">${cols}</div>
+                </div>
+            `;
+        }
+
+        window.appActions.openTaskModal = (id = '', clientId = '') => {
+            const t = id ? (state.tasks.find(x => x.id === id) || {}) : {};
+            document.getElementById('task-modal-title').innerText = id ? 'Editar Tarefa' : 'Nova Tarefa';
+            document.getElementById('task-id').value = id || '';
+
+            const sel = document.getElementById('task-clientId');
+            sel.innerHTML = `<option value="">Selecionar Cliente</option>` + state.clients.map(c => `<option value="${c.id}">${escapeHTML(c.name)}</option>`).join('');
+            sel.value = clientId || t.clientId || '';
+            sel.disabled = !!clientId; // travado quando veio do botão "Gerar Tarefa" do card do cliente
+
+            document.getElementById('task-title').value = t.title || '';
+            document.getElementById('task-status').value = t.status || 'solicitada';
+            document.getElementById('task-requestedBy').value = t.requestedBy || '';
+            document.getElementById('task-supplier').value = t.supplier || '';
+            document.getElementById('task-dueDate').value = t.dueDate || '';
+            document.getElementById('task-tags').value = (t.tags && t.tags.length) ? t.tags.join(', ') : '';
+            const links = t.links || {};
+            document.getElementById('task-link-senhas').value = links.senhas || '';
+            document.getElementById('task-link-cronograma').value = links.cronograma || '';
+            document.getElementById('task-link-contrato').value = links.contrato || '';
+            setCurrencyInput('task-cost', t.cost);
+
+            const cont = document.getElementById('task-stakeholders-container');
+            cont.innerHTML = '';
+            if (t.stakeholders && t.stakeholders.length) {
+                t.stakeholders.forEach(s => window.appActions.addStakeholderRow(s.name, s.role, s.phone));
+            }
+
+            showModalBase('modal-task');
+        };
+
+        window.appActions.addStakeholderRow = (name = '', role = '', phone = '') => {
+            const cont = document.getElementById('task-stakeholders-container');
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2 stakeholder-row';
+            const mk = (ph, val, cls) => {
+                const i = document.createElement('input');
+                i.type = 'text'; i.placeholder = ph; i.value = val || '';
+                i.className = `bg-[#111] border border-[#333] rounded-lg p-2 text-white text-xs outline-none focus:border-red-500 ${cls}`;
+                return i;
+            };
+            const nameInp = mk('Nome', name, 'flex-1 stake-name');
+            const roleInp = mk('Função', role, 'flex-1 stake-role');
+            const phoneInp = mk('Telefone (DDD)', phone, 'w-32 stake-phone');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'text-gray-500 hover:text-red-500 p-2 flex-shrink-0';
+            btn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
+            btn.onclick = () => row.remove();
+            row.appendChild(nameInp); row.appendChild(roleInp); row.appendChild(phoneInp); row.appendChild(btn);
+            cont.appendChild(row);
+            if (window.lucide) window.lucide.createIcons({ root: row });
+        };
 
         function getTeamHTML() {
             let html = `
