@@ -63,7 +63,7 @@
 
     <!-- ECRÃ DE LOGIN -->
     <div id="login-screen" class="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center p-4 transition-all duration-700">
-        <div class="w-full max-w-md bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8 shadow-2xl animate-scale-in relative overflow-hidden">
+        <div class="w-full max-w-md bg-[#141414] border border-[#1e1e21] rounded-2xl p-8 shadow-2xl animate-scale-in relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-900 via-red-500 to-red-900 opacity-50"></div>
 
             <div class="flex justify-center mb-8">
@@ -202,8 +202,8 @@
     <div id="modal-backdrop" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all">
 
         <!-- Modal Cliente -->
-        <div id="modal-client" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex-col animate-scale-in relative">
-            <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
+        <div id="modal-client" class="hidden bg-[#111113] border border-[#242427] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex-col animate-scale-in relative">
+            <div class="p-6 border-b border-[#1e1e21] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
                 <h2 id="client-modal-title" class="text-2xl font-bold text-white tracking-tight">Cadastrar Novo Projeto</h2>
                 <button onclick="window.appActions.closeModal()" class="p-2 text-gray-400 hover:text-red-500 bg-[#222] hover:bg-[#333] rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -320,15 +320,15 @@
                 </div>
             </div>
 
-            <div class="p-6 border-t border-[#2a2a2a] bg-[#111] flex justify-end gap-4 sticky bottom-0 z-20 rounded-b-2xl">
+            <div class="p-6 border-t border-[#1e1e21] bg-[#111] flex justify-end gap-4 sticky bottom-0 z-20 rounded-b-2xl">
                 <button onclick="window.appActions.closeModal()" class="px-6 py-3 rounded-lg font-bold text-gray-400 hover:text-white hover:bg-[#222]">Cancelar</button>
                 <button id="btn-save-client" onclick="window.appActions.saveClient()" class="bg-red-600 hover:bg-red-700 text-white px-10 py-3 rounded-lg font-bold transition-all shadow-lg shadow-red-900/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">Salvar Projeto</button>
             </div>
         </div>
 
         <!-- Modal Item Híbrido (Equipe / Manutenção / Ferramenta-Fornecedor) -->
-        <div id="modal-item" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex-col animate-scale-in">
-            <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center bg-[#111]">
+        <div id="modal-item" class="hidden bg-[#111113] border border-[#242427] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex-col animate-scale-in">
+            <div class="p-6 border-b border-[#1e1e21] flex justify-between items-center bg-[#111]">
                 <h2 id="item-modal-title" class="text-xl font-bold text-white tracking-tight">Novo Item</h2>
                 <button onclick="window.appActions.closeModal()" class="p-2 text-gray-400 hover:text-red-500 bg-[#222] rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -382,7 +382,7 @@
                     </div>
                 </div>
             </div>
-            <div class="p-6 border-t border-[#2a2a2a] bg-[#111] flex justify-end gap-3">
+            <div class="p-6 border-t border-[#1e1e21] bg-[#111] flex justify-end gap-3">
                 <button onclick="window.appActions.closeModal()" class="px-5 py-2.5 rounded-lg font-bold text-gray-400 hover:text-white transition-colors hover:bg-[#222]">Cancelar</button>
                 <button onclick="window.appActions.saveItem()" class="bg-red-600 hover:bg-red-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-red-900/30 transition-transform hover:-translate-y-0.5">Salvar</button>
             </div>
@@ -390,8 +390,8 @@
 
         <!-- Modal Member Dashboard -->
         <div id="modal-member-dashboard" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div class="bg-[#141414] border border-[#333] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col animate-scale-in relative">
-                <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
+            <div class="bg-[#111113] border border-[#242427] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col animate-scale-in relative">
+                <div class="p-6 border-b border-[#1e1e21] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-red-900/30 border border-red-500/50 rounded-full flex items-center justify-center font-black text-red-400 shadow-inner"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></div>
                         <h2 class="text-2xl font-bold text-white tracking-tight" id="member-dash-title">Dashboard do Integrante</h2>
@@ -403,8 +403,8 @@
         </div>
 
         <!-- Modal Histórico (detalhe do mês travado) -->
-        <div id="modal-history" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex-col animate-scale-in relative">
-            <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
+        <div id="modal-history" class="hidden bg-[#111113] border border-[#242427] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex-col animate-scale-in relative">
+            <div class="p-6 border-b border-[#1e1e21] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-red-900/30 border border-red-500/50 rounded-full flex items-center justify-center font-black text-red-400 shadow-inner"><i data-lucide="calendar-days" class="w-5 h-5"></i></div>
                     <h2 class="text-2xl font-bold text-white tracking-tight" id="history-modal-title">Detalhe do Fechamento</h2>
@@ -415,8 +415,8 @@
         </div>
 
         <!-- Modal Tarefa (Operação) -->
-        <div id="modal-task" class="hidden bg-[#141414] border border-[#333] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex-col animate-scale-in relative">
-            <div class="p-6 border-b border-[#2a2a2a] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
+        <div id="modal-task" class="hidden bg-[#111113] border border-[#242427] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl flex-col animate-scale-in relative">
+            <div class="p-6 border-b border-[#1e1e21] flex justify-between items-center sticky top-0 bg-[#141414]/95 backdrop-blur z-20">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-red-900/30 border border-red-500/50 rounded-full flex items-center justify-center font-black text-red-400 shadow-inner"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
                     <h2 id="task-modal-title" class="text-2xl font-bold text-white tracking-tight">Nova Tarefa</h2>
@@ -505,7 +505,7 @@
                 </div>
             </div>
 
-            <div class="p-6 border-t border-[#2a2a2a] bg-[#111] flex justify-end gap-3 sticky bottom-0 z-20 rounded-b-2xl">
+            <div class="p-6 border-t border-[#1e1e21] bg-[#111] flex justify-end gap-3 sticky bottom-0 z-20 rounded-b-2xl">
                 <button onclick="window.appActions.closeModal()" class="px-5 py-2.5 rounded-lg font-bold text-gray-400 hover:text-white transition-colors hover:bg-[#222]">Cancelar</button>
                 <button onclick="window.appActions.saveTask()" class="bg-red-600 hover:bg-red-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-red-900/30 transition-transform hover:-translate-y-0.5">Salvar Tarefa</button>
             </div>

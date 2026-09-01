@@ -1111,28 +1111,22 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             const userEmail = state.user?.email || 'Visitante Anônimo';
 
             return `
-                <div class="max-w-2xl mx-auto bg-[#111] border border-[#222] rounded-3xl shadow-2xl overflow-hidden animate-fade-in relative">
-                    <div class="absolute -top-32 -left-32 w-64 h-64 bg-red-900/20 rounded-full blur-3xl pointer-events-none"></div>
-                    <div class="h-36 bg-gradient-to-br from-red-950 to-[#050505] relative border-b border-[#222]"></div>
-                    <div class="px-8 pb-10 relative z-10">
-                        <div class="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-16 mb-10 text-center sm:text-left">
-                            <div class="w-32 h-32 bg-[#0a0a0a] border-4 border-[#111] rounded-full flex items-center justify-center text-5xl font-black text-red-500 shadow-2xl overflow-hidden">
-                                ${userName ? userName.charAt(0).toUpperCase() : 'V'}
-                            </div>
-                            <div class="mb-2">
-                                <h2 class="text-3xl font-black text-white tracking-tight">${escapeHTML(userName) || 'Visitante'}</h2>
-                                <p class="text-gray-400 font-medium text-sm mt-1 bg-[#222] px-3 py-1 rounded-full border border-[#333] inline-block">${escapeHTML(userEmail)}</p>
-                            </div>
+                <div class="max-w-xl mx-auto animate-fade-in">
+                    <div class="flex items-center gap-5 mb-10">
+                        <div class="w-16 h-16 rounded-full bg-[#141416] border border-[#242427] flex items-center justify-center text-2xl font-bold text-red-500 flex-shrink-0">${userName ? userName.charAt(0).toUpperCase() : 'V'}</div>
+                        <div>
+                            <h2 class="text-2xl font-semibold text-white tracking-tight">${escapeHTML(userName) || 'Visitante'}</h2>
+                            <p class="text-gray-500 text-sm mt-0.5">${escapeHTML(userEmail)}</p>
                         </div>
-                        <div class="space-y-6 bg-[#0a0a0a] p-8 rounded-2xl border border-[#222] shadow-inner">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Nome de Exibição Público</label>
-                                <input type="text" id="profile-name" value="${escapeHTML(userName)}" class="w-full bg-[#111] border border-[#333] rounded-xl p-3.5 text-white font-medium focus:border-red-500 outline-none" />
-                            </div>
-                            <div class="pt-6 mt-4 border-t border-[#222] flex flex-col sm:flex-row gap-4 justify-between items-center">
-                                <button onclick="window.appActions.logout()" class="w-full sm:w-auto text-red-500 hover:text-white hover:bg-red-900 bg-red-950/20 border border-red-900/50 px-6 py-3 rounded-xl font-bold uppercase text-xs transition-all"><i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i> Encerrar Sessão</button>
-                                <button onclick="window.appActions.saveProfile()" class="w-full sm:w-auto bg-white text-black px-8 py-3 rounded-xl font-black uppercase text-xs hover:bg-gray-200 transition-all shadow-lg"><i data-lucide="save" class="w-4 h-4 inline mr-2"></i> Salvar Perfil</button>
-                            </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wider">Nome de exibição público</label>
+                            <input type="text" id="profile-name" value="${escapeHTML(userName)}" class="w-full bg-[#141416] border border-[#242427] rounded-xl p-3.5 text-white font-medium focus:border-red-500 outline-none" />
+                        </div>
+                        <div class="pt-6 border-t border-[#1a1a1d] flex flex-col sm:flex-row gap-3 justify-between items-center">
+                            <button onclick="window.appActions.logout()" class="w-full sm:w-auto text-red-400 hover:text-red-300 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 py-2"><i data-lucide="log-out" class="w-4 h-4"></i> Encerrar sessão</button>
+                            <button onclick="window.appActions.saveProfile()" class="w-full sm:w-auto bg-[#f3f3f4] text-black px-6 py-2.5 rounded-xl font-bold uppercase text-xs hover:bg-white transition-colors flex items-center justify-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> Salvar perfil</button>
                         </div>
                     </div>
                 </div>
