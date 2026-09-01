@@ -810,11 +810,11 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             const cols = TASK_COLUMNS.map((col, ci) => {
                 const tasks = state.tasks.filter(t => (t.status || 'solicitada') === col.key);
                 const cards = tasks.length === 0
-                    ? `<div class="text-center text-[11px] text-gray-600 border border-dashed border-[#222] rounded-xl py-8">Sem tarefas</div>`
+                    ? `<div class="text-center text-[11px] text-gray-700 py-8">—</div>`
                     : tasks.map(t => {
                         const client = state.clients.find(c => c.id === t.clientId);
                         const due = t.dueDate ? t.dueDate.split('-').reverse().join('/') : '—';
-                        const tagsHtml = (t.tags && t.tags.length) ? t.tags.map(tag => `<span class="text-[9px] uppercase font-bold text-gray-300 bg-[#1a1a1a] border border-[#333] px-1.5 py-0.5 rounded">${escapeHTML(tag)}</span>`).join('') : '';
+                        const tagsHtml = (t.tags && t.tags.length) ? t.tags.map(tag => `<span class="text-[9px] uppercase font-semibold text-gray-400 bg-[#1b1b1e] px-1.5 py-0.5 rounded">${escapeHTML(tag)}</span>`).join('') : '';
                         const stakeHtml = (t.stakeholders && t.stakeholders.length) ? t.stakeholders.map(s => {
                             const phone = (s.phone || '').replace(/\D/g, '');
                             const nameRole = escapeHTML(s.name || '') + (s.role ? ` · ${escapeHTML(s.role)}` : '');
@@ -822,53 +822,51 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                                 ? `<a href="https://wa.me/55${phone}" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-[11px] text-emerald-400 hover:text-emerald-300"><i data-lucide="phone" class="w-3 h-3"></i> ${nameRole}</a>`
                                 : `<span class="flex items-center gap-1.5 text-[11px] text-gray-400"><i data-lucide="user" class="w-3 h-3"></i> ${nameRole}</span>`;
                         }).join('') : '';
-                        const costHtml = Number(t.cost || 0) > 0 ? `<span class="text-red-400 font-bold">-${formatCurrency(t.cost)}</span>` : '';
+                        const costHtml = Number(t.cost || 0) > 0 ? `<span class="dfc-mono text-red-400 font-semibold">-${formatCurrency(t.cost)}</span>` : '';
 
                         return `
-                            <div class="bg-[#111] border border-[#222] rounded-xl p-4 shadow-lg animate-fade-in cursor-pointer group hover:border-[#333] transition-colors" data-action="openTaskModal" data-id="${escapeHTML(t.id)}">
+                            <div class="bg-[#141416] rounded-xl p-3.5 animate-fade-in cursor-pointer group hover:bg-[#17171a] transition-colors" data-action="openTaskModal" data-id="${escapeHTML(t.id)}">
                                 <div class="flex justify-between items-start gap-2 mb-2">
-                                    <h4 class="font-bold text-sm text-white leading-snug">${escapeHTML(t.title || 'Sem título')}</h4>
-                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                        <button data-action="deleteTask" data-id="${escapeHTML(t.id)}" class="w-6 h-6 flex items-center justify-center bg-[#1a1a1a] rounded text-gray-500 hover:text-red-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                                    </div>
+                                    <h4 class="font-semibold text-[13px] text-white leading-snug">${escapeHTML(t.title || 'Sem título')}</h4>
+                                    <button data-action="deleteTask" data-id="${escapeHTML(t.id)}" class="w-6 h-6 flex items-center justify-center rounded text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                                 </div>
-                                ${client ? `<p class="text-[10px] uppercase font-bold text-blue-400 mb-2">${escapeHTML(client.name)}</p>` : ''}
+                                ${client ? `<p class="text-[10px] uppercase font-semibold text-blue-400/90 mb-2">${escapeHTML(client.name)}</p>` : ''}
                                 ${tagsHtml ? `<div class="flex flex-wrap gap-1 mb-2">${tagsHtml}</div>` : ''}
-                                ${stakeHtml ? `<div class="space-y-1 mb-2 border-t border-[#1a1a1a] pt-2">${stakeHtml}</div>` : ''}
-                                <div class="flex justify-between items-center border-t border-[#1a1a1a] pt-2 mt-2">
+                                ${stakeHtml ? `<div class="space-y-1 mb-2 pt-2 border-t border-[#1e1e21]">${stakeHtml}</div>` : ''}
+                                <div class="flex justify-between items-center pt-2 mt-1 border-t border-[#1e1e21]">
                                     <span class="text-[10px] text-gray-500 flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${due}</span>
                                     ${costHtml}
                                 </div>
-                                <div class="flex justify-between gap-2 mt-3">
-                                    <button data-action="moveTask" data-id="${escapeHTML(t.id)}" data-dir="prev" class="flex-1 bg-[#1a1a1a] border border-[#333] rounded-md py-1.5 text-gray-400 hover:text-white flex items-center justify-center ${ci === 0 ? 'opacity-30 pointer-events-none' : ''}"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
-                                    <button data-action="moveTask" data-id="${escapeHTML(t.id)}" data-dir="next" class="flex-1 bg-[#1a1a1a] border border-[#333] rounded-md py-1.5 text-gray-400 hover:text-white flex items-center justify-center ${ci === TASK_COLUMNS.length - 1 ? 'opacity-30 pointer-events-none' : ''}"><i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+                                <div class="flex justify-between gap-2 mt-2.5">
+                                    <button data-action="moveTask" data-id="${escapeHTML(t.id)}" data-dir="prev" class="flex-1 bg-[#1b1b1e] rounded-md py-1.5 text-gray-500 hover:text-white flex items-center justify-center ${ci === 0 ? 'opacity-25 pointer-events-none' : ''}"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
+                                    <button data-action="moveTask" data-id="${escapeHTML(t.id)}" data-dir="next" class="flex-1 bg-[#1b1b1e] rounded-md py-1.5 text-gray-500 hover:text-white flex items-center justify-center ${ci === TASK_COLUMNS.length - 1 ? 'opacity-25 pointer-events-none' : ''}"><i data-lucide="arrow-right" class="w-4 h-4"></i></button>
                                 </div>
                             </div>
                         `;
                     }).join('');
 
                 return `
-                    <div class="flex-1 min-w-[280px] bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-4 flex flex-col">
-                        <div class="flex items-center justify-between mb-4 px-1">
+                    <div class="flex-1 min-w-[270px] flex flex-col">
+                        <div class="flex items-center justify-between mb-3 px-1">
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full ${col.dot}"></span>
-                                <h3 class="text-xs font-black uppercase tracking-wider text-gray-300">${col.label}</h3>
+                                <span class="w-1.5 h-1.5 rounded-full ${col.dot}"></span>
+                                <h3 class="text-[11px] font-semibold uppercase tracking-widest text-gray-400">${col.label}</h3>
                             </div>
-                            <span class="text-[10px] font-bold text-gray-500 bg-[#1a1a1a] px-2 py-0.5 rounded-full">${tasks.length}</span>
+                            <span class="dfc-mono text-[10px] text-gray-600">${tasks.length}</span>
                         </div>
-                        <div class="space-y-3 flex-1">${cards}</div>
+                        <div class="space-y-2.5 flex-1 bg-[#0c0c0d] rounded-xl p-2.5">${cards}</div>
                     </div>
                 `;
             }).join('');
 
             return `
                 <div class="animate-fade-in">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-7 gap-4">
                         <div>
-                            <h2 class="text-2xl font-bold text-white tracking-tight">Operação</h2>
-                            <p class="text-sm text-gray-500 mt-1">Kanban de tarefas interligado a Clientes e Finanças.</p>
+                            <h2 class="text-xl font-semibold text-white tracking-tight">Operação</h2>
+                            <p class="text-[13px] text-gray-500 mt-1">Kanban de tarefas interligado a Clientes e Finanças.</p>
                         </div>
-                        <button data-action="openTaskModal" data-id="" data-clientid="" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-200"><i data-lucide="plus" class="w-4 h-4"></i> Nova Tarefa</button>
+                        <button data-action="openTaskModal" data-id="" data-clientid="" class="bg-[#f3f3f4] text-black px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Nova Tarefa</button>
                     </div>
                     <div class="flex gap-4 overflow-x-auto pb-4">${cols}</div>
                 </div>
@@ -930,99 +928,75 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         };
 
         function getTeamHTML() {
-            let html = `
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <h2 class="text-2xl font-bold text-white tracking-tight">Equipe DFC</h2>
-                    <button onclick="window.appActions.openItemModal('equipe')" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Novo Integrante</button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
-            `;
-
             const equipeMembers = state.team.filter(m => (m.itemType || 'equipe') !== 'manutencao');
-            if(equipeMembers.length === 0) html += `<div class="col-span-full py-10 text-center border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum membro cadastrado.</div>`;
-            else {
-                html += equipeMembers.map(member => {
-                    const memberClients = state.clients.filter(c => c.status !== 'Churn');
-                    const mrrMcGerado = memberClients.reduce((acc, c) => acc + (calcMargin(Number(c.recurringValue||0)) * getMemberPct(c, member.id)), 0);
-                    const mCost = getMemberCostInMonth(member, state.selectedMonth);
-                    const lucro = mrrMcGerado - mCost;
-                    const startStr = member.startMonth ? member.startMonth.split('-').reverse().join('/') : 'Sempre Ativo';
-                    const itemCat = member.itemType || 'equipe';
-                    const catBadge = itemCat === 'manutencao'
-                        ? `<span class="text-orange-400 border border-orange-900/50 bg-orange-900/20 px-1 rounded ml-1">Manutenção</span>`
-                        : '';
-
-                    return `
-                    <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col cursor-pointer" data-action="openItemModal" data-cat="${itemCat}" data-id="${escapeHTML(member.id)}">
-                        <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button data-action="deleteItem" data-coll="team" data-id="${escapeHTML(member.id)}" class="w-8 h-8 bg-[#222] rounded-lg text-gray-400 hover:text-red-500 flex items-center justify-center"><i data-lucide="trash" class="w-4 h-4"></i></button>
-                        </div>
-                        <div class="flex items-center gap-4 mb-6">
-                            <div class="w-14 h-14 bg-red-800 rounded-xl flex items-center justify-center text-2xl font-black text-white">${escapeHTML(member.name).charAt(0).toUpperCase()}</div>
-                            <div>
-                                <h3 class="font-black text-xl text-white">${escapeHTML(member.name)}</h3>
-                                <p class="text-[10px] text-gray-400 font-bold uppercase">${escapeHTML(member.role)} <span class="text-blue-400 border border-blue-900/50 bg-blue-900/20 px-1 rounded ml-1">Início: ${startStr}</span>${catBadge}</p>
-                            </div>
-                        </div>
-                        <div class="space-y-1 bg-[#0a0a0a] rounded-xl p-4 border border-[#222]">
-                            <div class="flex justify-between items-center text-sm py-1"><span class="text-gray-500">Custo Fixo Mensal:</span><span class="text-red-400">-${formatCurrency(mCost)}</span></div>
-                            <div class="flex justify-between items-center text-sm py-1"><span class="text-gray-500">Margem (Repasse):</span><span class="text-emerald-400">+${formatCurrency(mrrMcGerado)}</span></div>
-                            <div class="pt-2 mt-1 border-t border-[#333] flex justify-between items-center"><span class="text-xs font-black uppercase text-white">Lucro:</span><span class="font-black text-lg ${lucro>=0?'text-emerald-500':'text-red-500'}">${formatCurrency(lucro)}</span></div>
-                        </div>
-                    </div>`;
-                }).join('');
-            }
-            html += `</div>`;
-
-            // Expenses
-            html += `
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-t border-[#222] pt-10">
-                    <h2 class="text-2xl font-bold text-white tracking-tight">Custos & Fornecedores</h2>
-                    <button onclick="window.appActions.openItemModal('ferramenta')" class="bg-[#1a1a1a] border border-[#333] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Novo Custo</button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            `;
             const manutencaoItems = state.team.filter(m => m.itemType === 'manutencao');
-            if(manutencaoItems.length === 0 && state.expenses.length === 0) html += `<div class="col-span-full py-10 text-center border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum custo cadastrado.</div>`;
-            else {
+
+            let html = `
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <h2 class="text-xl font-semibold text-white tracking-tight">Equipe DFC</h2>
+                    <button onclick="window.appActions.openItemModal('equipe')" class="bg-[#f3f3f4] text-black hover:bg-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-colors"><i data-lucide="user-plus" class="w-4 h-4"></i> Novo Integrante</button>
+                </div>`;
+
+            if (equipeMembers.length === 0) html += `<div class="py-10 text-center text-gray-600 text-sm">Nenhum membro cadastrado.</div>`;
+            else html += `<div class="divide-y divide-[#1a1a1d]">` + equipeMembers.map(member => {
+                const memberClients = state.clients.filter(c => c.status !== 'Churn');
+                const mrrMcGerado = memberClients.reduce((acc, c) => acc + (calcMargin(Number(c.recurringValue||0)) * getMemberPct(c, member.id)), 0);
+                const mCost = getMemberCostInMonth(member, state.selectedMonth);
+                const lucro = mrrMcGerado - mCost;
+                const startStr = member.startMonth ? member.startMonth.split('-').reverse().join('/') : 'Sempre';
+                const mid = escapeHTML(member.id);
+                return `
+                    <div class="group flex items-center gap-4 py-3.5 px-2 -mx-2 rounded-lg hover:bg-[#0e0e10] cursor-pointer transition-colors" data-action="openItemModal" data-cat="equipe" data-id="${mid}">
+                        <div class="w-9 h-9 rounded-lg bg-[#1b1b1e] flex items-center justify-center text-sm font-bold text-gray-300 flex-shrink-0">${escapeHTML(member.name).charAt(0).toUpperCase()}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-white truncate">${escapeHTML(member.name)}</div>
+                            <div class="text-[11px] text-gray-500 mt-0.5">${escapeHTML(member.role || '')}${member.role ? ' · ' : ''}Início ${startStr}</div>
+                        </div>
+                        <div class="hidden sm:flex items-center gap-6 text-right flex-shrink-0">
+                            <div><div class="text-[9px] uppercase text-gray-600 tracking-wide">Custo</div><div class="dfc-mono text-red-400 text-sm">-${formatCurrency(mCost)}</div></div>
+                            <div><div class="text-[9px] uppercase text-gray-600 tracking-wide">Repasse</div><div class="dfc-mono text-emerald-400 text-sm">+${formatCurrency(mrrMcGerado)}</div></div>
+                            <div><div class="text-[9px] uppercase text-gray-600 tracking-wide">Lucro</div><div class="dfc-mono text-sm font-semibold ${lucro>=0?'text-emerald-400':'text-red-400'}">${formatCurrency(lucro)}</div></div>
+                        </div>
+                        <button data-action="deleteItem" data-coll="team" data-id="${mid}" class="w-7 h-7 inline-flex items-center justify-center text-gray-600 hover:text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>`;
+            }).join('') + `</div>`;
+
+            html += `
+                <div class="flex items-center justify-between gap-3 mb-4 mt-12">
+                    <h2 class="text-xl font-semibold text-white tracking-tight">Custos & Fornecedores</h2>
+                    <button onclick="window.appActions.openItemModal('ferramenta')" class="bg-[#141416] border border-[#1c1c1f] text-gray-300 hover:text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Novo Custo</button>
+                </div>`;
+
+            const costRow = (id, cat, coll, name, badgeHtml, val) => `
+                <div class="group flex items-center gap-4 py-3.5 px-2 -mx-2 rounded-lg hover:bg-[#0e0e10] cursor-pointer transition-colors" data-action="openItemModal" data-cat="${cat}" data-id="${escapeHTML(id)}">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold text-white truncate">${escapeHTML(name)}</div>
+                        <div class="text-[11px] text-gray-500 mt-0.5 flex flex-wrap items-center gap-x-2">${badgeHtml}</div>
+                    </div>
+                    <div class="dfc-mono text-red-400 font-semibold flex-shrink-0">-${formatCurrency(val)}</div>
+                    <button data-action="deleteItem" data-coll="${coll}" data-id="${escapeHTML(id)}" class="w-7 h-7 inline-flex items-center justify-center text-gray-600 hover:text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </div>`;
+
+            if (manutencaoItems.length === 0 && state.expenses.length === 0) {
+                html += `<div class="py-10 text-center text-gray-600 text-sm">Nenhum custo cadastrado.</div>`;
+            } else {
+                html += `<div class="divide-y divide-[#1a1a1d]">`;
                 html += manutencaoItems.map(item => {
                     const typeStr = item.type === 'unico' ? 'Único' : 'Recorrente';
                     const monthStr = item.startMonth ? item.startMonth.split('-').reverse().join('/') : 'Sempre';
-                    return `
-                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between cursor-pointer" data-action="openItemModal" data-cat="manutencao" data-id="${escapeHTML(item.id)}">
-                            <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button data-action="deleteItem" data-coll="team" data-id="${escapeHTML(item.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400 hover:text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
-                            </div>
-                            <h3 class="font-bold text-lg text-white mb-1 pr-16">${escapeHTML(item.name)}</h3>
-                            <div class="flex flex-wrap gap-2 mb-4">
-                                <p class="text-[9px] font-bold uppercase tracking-wider text-orange-400 bg-orange-900/20 border-orange-900/50 px-2 py-0.5 rounded border">Manutenção</p>
-                                <p class="text-[9px] font-bold uppercase tracking-wider text-blue-400 bg-blue-900/20 border-blue-900/50 px-2 py-0.5 rounded border">${typeStr} (${monthStr})</p>
-                            </div>
-                            <div class="text-2xl font-black text-red-400 mt-2">-${formatCurrency(item.cost)}</div>
-                        </div>
-                    `;
+                    const badge = `<span class="text-orange-400 font-semibold uppercase text-[9px] tracking-wide">Manutenção</span><span class="text-gray-700">·</span><span>${typeStr} · ${monthStr}</span>`;
+                    return costRow(item.id, 'manutencao', 'team', item.name, badge, item.cost);
                 }).join('');
                 html += state.expenses.map(exp => {
                     const client = state.clients.find(c => c.id === exp.clientId);
                     const typeStr = exp.type === 'unico' ? 'Único' : 'Recorrente';
                     const monthStr = exp.month ? exp.month.split('-').reverse().join('/') : 'Sempre';
-
-                    return `
-                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative group flex flex-col justify-between cursor-pointer" data-action="openItemModal" data-cat="ferramenta" data-id="${escapeHTML(exp.id)}">
-                            <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button data-action="deleteItem" data-coll="expenses" data-id="${escapeHTML(exp.id)}" class="w-8 h-8 flex items-center justify-center bg-[#222] rounded-lg text-gray-400 hover:text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
-                            </div>
-                            <h3 class="font-bold text-lg text-white mb-1 pr-16">${escapeHTML(exp.name)}</h3>
-                            <div class="flex flex-wrap gap-2 mb-4">
-                                <p class="text-[9px] font-bold uppercase tracking-wider ${client ? 'text-blue-400 bg-blue-900/20 border-blue-900/50' : 'text-gray-400 bg-[#222] border-[#333]'} px-2 py-0.5 rounded border">${client ? 'Projeto: ' + escapeHTML(client.name.split(' ')[0]) : 'Geral'}</p>
-                                <p class="text-[9px] font-bold uppercase tracking-wider text-orange-400 bg-orange-900/20 border-orange-900/50 px-2 py-0.5 rounded border">${typeStr} (${monthStr})</p>
-                            </div>
-                            <div class="text-2xl font-black text-red-400 mt-2">-${formatCurrency(exp.amount)}</div>
-                        </div>
-                    `;
+                    const badge = `<span class="${client ? 'text-blue-400' : 'text-gray-500'} font-semibold uppercase text-[9px] tracking-wide">${client ? 'Projeto: ' + escapeHTML(client.name.split(' ')[0]) : 'Geral'}</span><span class="text-gray-700">·</span><span>${typeStr} · ${monthStr}</span>`;
+                    return costRow(exp.id, 'ferramenta', 'expenses', exp.name, badge, exp.amount);
                 }).join('');
+                html += `</div>`;
             }
-            html += `</div>`;
+
             return html;
         }
 
@@ -1031,18 +1005,18 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             const isLocked = state.closures.some(c => c.month === state.selectedMonth && c.locked);
 
             let html = `
-                <div class="bg-[#111] border border-[#222] rounded-2xl overflow-hidden shadow-2xl animate-fade-in">
-                    <div class="p-6 md:p-8 border-b border-[#222] bg-[#141414] flex flex-col md:flex-row md:justify-between items-center gap-4">
-                        <h2 class="text-2xl font-black text-white">Fechamento: <span class="text-red-500">${escapeHTML(state.selectedMonth)}</span></h2>
-                        ${isLocked ? `<div class="bg-red-900/20 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-xs font-black uppercase"><i data-lucide="lock" class="w-4 h-4 inline mr-1"></i> Mês Travado</div>` : ''}
+                <div class="animate-fade-in">
+                    <div class="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-3 mb-6">
+                        <h2 class="text-xl font-semibold text-white tracking-tight">Fechamento <span class="dfc-mono text-gray-500 ml-1">${escapeHTML(state.selectedMonth)}</span></h2>
+                        ${isLocked ? `<div class="text-red-400 text-[11px] font-bold uppercase tracking-wide flex items-center gap-1.5"><i data-lucide="lock" class="w-3.5 h-3.5"></i> Mês travado</div>` : ''}
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr class="bg-[#0a0a0a] border-b border-[#222] text-[10px] font-black uppercase text-gray-500">
-                                <th class="p-5">Nome do Cliente</th><th class="p-5 text-right">Previsto (Contrato)</th><th class="p-5 text-right">Realizado (Baixa)</th>
-                                <th class="p-5 text-right bg-[#111]">Margem Limpa DFC</th><th class="p-5 text-center">Status</th>
+                            <thead><tr class="border-b border-[#242427] text-[10px] font-semibold uppercase tracking-wider text-gray-600">
+                                <th class="py-3 pr-4">Cliente</th><th class="py-3 px-4 text-right">Previsto</th><th class="py-3 px-4 text-right">Realizado</th>
+                                <th class="py-3 px-4 text-right">Margem DFC</th><th class="py-3 pl-4 text-center">Status</th>
                             </tr></thead>
-                            <tbody class="divide-y divide-[#222]">
+                            <tbody class="divide-y divide-[#161619]">
             `;
 
             const validClients = state.clients.filter(c => c.status !== 'Churn' || (c.status === 'Churn' && moTrans.some(t => t.clientId === c.id)));
@@ -1072,62 +1046,64 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 else if(isPend) statusHTML = '<span class="bg-amber-900/20 text-amber-500 px-3 py-1 rounded text-[10px] uppercase font-bold">Pendente</span>';
 
                 html += `
-                    <tr class="hover:bg-[#1a1a1a]">
-                        <td class="p-5 font-bold text-white text-sm">${escapeHTML(client.name)}</td>
-                        <td class="p-5 text-right text-xs">${pR>0?`MRR: ${formatCurrency(pR)}<br>`:''}${pO>0?`O.T.: ${formatCurrency(pO)}`:''}</td>
-                        <td class="p-5 text-right text-xs">${pR>0?`<span class="${rR>0?'text-emerald-400':'text-gray-600'}">${formatCurrency(rR)}</span><br>`:''}${pO>0?`<span class="${rO>0?'text-emerald-400':'text-gray-600'}">${formatCurrency(rO)}</span>`:''}</td>
-                        <td class="p-5 text-right bg-[#111]"><span class="text-emerald-500 font-bold">${formatCurrency(mTotal)}</span></td>
-                        <td class="p-5 text-center">${statusHTML}</td>
+                    <tr class="hover:bg-[#0e0e10]">
+                        <td class="py-3.5 pr-4 font-semibold text-white text-sm">${escapeHTML(client.name)}</td>
+                        <td class="py-3.5 px-4 text-right text-xs text-gray-500">${pR>0?`MRR: ${formatCurrency(pR)}<br>`:''}${pO>0?`O.T.: ${formatCurrency(pO)}`:''}</td>
+                        <td class="py-3.5 px-4 text-right text-xs">${pR>0?`<span class="${rR>0?'text-emerald-400':'text-gray-600'}">${formatCurrency(rR)}</span><br>`:''}${pO>0?`<span class="${rO>0?'text-emerald-400':'text-gray-600'}">${formatCurrency(rO)}</span>`:''}</td>
+                        <td class="py-3.5 px-4 text-right"><span class="text-emerald-400 font-semibold dfc-mono">${formatCurrency(mTotal)}</span></td>
+                        <td class="py-3.5 pl-4 text-center">${statusHTML}</td>
                     </tr>
                 `;
             });
 
             if(validClients.length > 0) {
                  html += `
-                    <tr class="bg-[#0a0a0a] border-t-2 border-[#333]">
-                        <td class="p-5 font-black text-white text-sm uppercase text-right">TOTAL MÊS</td>
-                        <td class="p-5 text-right text-xs font-bold text-gray-400">MRR: ${formatCurrency(somaPrevRec)}<br/>O.T.: ${formatCurrency(somaPrevOt)}</td>
-                        <td class="p-5 text-right text-xs font-bold text-gray-200">MRR: ${formatCurrency(somaRealRec)}<br/>O.T.: ${formatCurrency(somaRealOt)}</td>
-                        <td class="p-5 text-right font-black text-emerald-400 text-lg">${formatCurrency(somaMargem)}</td>
+                    <tr class="border-t border-[#242427]">
+                        <td class="py-4 pr-4 font-bold text-white text-xs uppercase tracking-wide text-right">Total do mês</td>
+                        <td class="py-4 px-4 text-right text-xs font-semibold text-gray-500">MRR: ${formatCurrency(somaPrevRec)}<br/>O.T.: ${formatCurrency(somaPrevOt)}</td>
+                        <td class="py-4 px-4 text-right text-xs font-semibold text-gray-300">MRR: ${formatCurrency(somaRealRec)}<br/>O.T.: ${formatCurrency(somaRealOt)}</td>
+                        <td class="py-4 px-4 text-right font-bold text-emerald-400 dfc-mono">${formatCurrency(somaMargem)}</td>
                         <td></td>
                     </tr>
                 `;
             }
 
             html += `</tbody></table></div>
-                <div class="p-6 md:p-8 bg-[#050505] flex justify-end">
-                    <button onclick="window.appActions.lockMonth()" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-black uppercase text-xs transition-all shadow-lg hover:-translate-y-0.5"><i data-lucide="${isLocked ? 'refresh-cw' : 'lock'}" class="w-4 h-4 inline mr-2"></i> ${isLocked ? 'Atualizar Travamento' : 'Congelar & Salvar Mês'}</button>
+                <div class="flex justify-end mt-6">
+                    <button onclick="window.appActions.lockMonth()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold uppercase text-xs transition-colors flex items-center gap-2"><i data-lucide="${isLocked ? 'refresh-cw' : 'lock'}" class="w-4 h-4"></i> ${isLocked ? 'Atualizar Travamento' : 'Congelar & Salvar Mês'}</button>
                 </div></div>`;
             return html;
         }
 
         function getHistoryHTML() {
-            let html = `<div class="animate-fade-in"><div class="mb-8"><h2 class="text-2xl font-bold text-white tracking-tight">Histórico de Fechamentos</h2></div><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">`;
-            if(state.closures.length === 0) html += `<div class="col-span-full py-20 text-center border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum mês travado no histórico.</div>`;
-            else {
-                state.closures.sort((a,b) => b.month.localeCompare(a.month)).forEach(c => {
-                    html += `
-                    <div class="bg-[#111] border border-[#222] rounded-2xl p-6 relative flex flex-col shadow-lg cursor-pointer hover:border-[#3a3a3a] transition-colors" data-action="openHistoryModal" data-id="${escapeHTML(c.month)}">
-                        <div class="flex items-center gap-4 mb-6">
-                            <div class="w-14 h-14 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-gray-400 border border-[#333]"><i data-lucide="calendar-days" class="w-6 h-6"></i></div>
-                            <div>
-                                <h3 class="font-black text-2xl text-white tracking-tighter">${escapeHTML(c.month)}</h3>
-                                <span class="text-[9px] uppercase font-bold text-emerald-500 bg-emerald-900/20 px-2 py-0.5 rounded w-max mt-1"><i data-lucide="lock" class="w-3 h-3 inline mr-1"></i> Travado</span>
-                            </div>
+            let html = `<div class="animate-fade-in"><h2 class="text-xl font-semibold text-white tracking-tight mb-6">Histórico de Fechamentos</h2>`;
+            if (state.closures.length === 0) {
+                html += `<div class="py-16 text-center text-gray-600 text-sm">Nenhum mês travado no histórico.</div>`;
+            } else {
+                html += `<div class="divide-y divide-[#1a1a1d]">` + state.closures.sort((a,b) => b.month.localeCompare(a.month)).map(c => {
+                    const custoEq = Number(c.margemTotalRealizada||0) - Number(c.lucroLiquido||0);
+                    const lucroPos = Number(c.lucroLiquido||0) >= 0;
+                    return `
+                    <div class="group flex items-center gap-4 py-4 px-2 -mx-2 rounded-lg hover:bg-[#0e0e10] cursor-pointer transition-colors" data-action="openHistoryModal" data-id="${escapeHTML(c.month)}">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <i data-lucide="calendar-days" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                            <span class="dfc-mono font-semibold text-white">${escapeHTML(c.month)}</span>
+                            <span class="text-emerald-500/80 text-[10px] uppercase font-semibold tracking-wide flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Travado</span>
                         </div>
-                        <div class="bg-[#0a0a0a] rounded-xl p-4 border border-[#222] space-y-3 mb-4 flex-1">
-                            <div class="flex justify-between items-center"><span class="text-[10px] text-gray-500 uppercase font-bold">MRR Bruto</span><span class="font-bold text-white text-sm">${formatCurrency(c.mrrBrutoRealizado)}</span></div>
-                            <div class="flex justify-between items-center border-t border-[#222] pt-3"><span class="text-[10px] text-gray-500 uppercase font-bold">Margem</span><span class="font-bold text-emerald-400 text-sm">+${formatCurrency(c.margemTotalRealizada)}</span></div>
-                            <div class="flex justify-between items-center border-t border-[#222] pt-3"><span class="text-[10px] text-gray-500 uppercase font-bold">Custos Equipe</span><span class="font-bold text-red-400 text-sm">-${formatCurrency(Number(c.margemTotalRealizada||0) - Number(c.lucroLiquido||0))}</span></div>
+                        <div class="hidden sm:flex items-center gap-6 text-right flex-shrink-0">
+                            <div><div class="text-[9px] uppercase text-gray-600 tracking-wide">MRR</div><div class="dfc-mono text-sm text-gray-300">${formatCurrency(c.mrrBrutoRealizado)}</div></div>
+                            <div><div class="text-[9px] uppercase text-gray-600 tracking-wide">Margem</div><div class="dfc-mono text-sm text-emerald-400">${formatCurrency(c.margemTotalRealizada)}</div></div>
+                            <div><div class="text-[9px] uppercase text-gray-600 tracking-wide">Custos</div><div class="dfc-mono text-sm text-red-400">-${formatCurrency(custoEq)}</div></div>
                         </div>
-                        <div class="pt-4 border-t border-[#222] flex justify-between items-center">
-                            <span class="text-[10px] text-gray-400 uppercase font-black">Líquido</span>
-                            <span class="font-black text-2xl ${Number(c.lucroLiquido||0)>=0?'text-emerald-500':'text-red-500'} tracking-tight">${formatCurrency(c.lucroLiquido)}</span>
+                        <div class="text-right flex-shrink-0 min-w-[110px]">
+                            <div class="text-[9px] uppercase text-gray-600 tracking-wide">Líquido</div>
+                            <div class="dfc-mono text-base font-semibold ${lucroPos ? 'text-emerald-400' : 'text-red-400'}">${formatCurrency(c.lucroLiquido)}</div>
                         </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-gray-700 group-hover:text-gray-400 flex-shrink-0"></i>
                     </div>`;
-                });
+                }).join('') + `</div>`;
             }
-            return html + '</div></div>';
+            return html + `</div>`;
         }
 
         function getProfileHTML() {
