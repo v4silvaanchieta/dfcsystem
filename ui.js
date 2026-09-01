@@ -108,6 +108,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         window.appActions.updateSelectedYear = (val) => { state.selectedYear = val; renderContent(); };
         window.appActions.setClientFilter = (f) => { state.clientFilter = f; renderContent(); };
         window.appActions.setClientsView = (v) => { state.clientsView = v; renderContent(); };
+        window.appActions.setClientStatusFilter = (f) => { state.clientStatusFilter = f; renderContent(); };
         window.appActions.setMemberChart = (id) => { state.selectedMemberId = id; renderChart(); };
 
         window.appActions.closeModal = () => {
@@ -618,27 +619,72 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             };
             list.sort((a, b) => (isClientPending(b) ? 1 : 0) - (isClientPending(a) ? 1 : 0));
 
+            // Grupo por status: Churn ; Concluído (= projeto entregue) ; Ativo (em andamento)
+            const groupOf = (c) => c.status === 'Churn' ? 'churn' : (c.delivered ? 'concluido' : 'ativo');
+            const statusFilter = state.clientStatusFilter || 'Todos';
+            const shown = statusFilter === 'Todos' ? list : list.filter(c => groupOf(c) === statusFilter);
             const viewList = state.clientsView === 'list';
+
+            const phaseChips = ['Todos', 'Manutenção', 'Implementação', 'Tratativa'].map(p => `
+                <button onclick="window.appActions.setClientFilter('${escapeHTML(p)}')" class="px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all whitespace-nowrap ${state.clientFilter === p ? 'bg-red-600 text-white' : 'bg-[#141416] text-gray-500 border border-[#1c1c1f] hover:text-white'}">${escapeHTML(p)}</button>
+            `).join('');
+
+            const statusChips = [
+                { key: 'Todos', label: 'Todos' }, { key: 'ativo', label: 'Ativos' },
+                { key: 'concluido', label: 'Concluídos' }, { key: 'churn', label: 'Churn' }
+            ].map(s => {
+                const n = s.key === 'Todos' ? list.length : list.filter(c => groupOf(c) === s.key).length;
+                const on = statusFilter === s.key;
+                return `<button onclick="window.appActions.setClientStatusFilter('${s.key}')" class="text-[11px] font-semibold transition-colors ${on ? 'text-white' : 'text-gray-600 hover:text-gray-300'}">${s.label} <span class="dfc-mono ${on ? 'text-gray-300' : 'text-gray-700'}">${n}</span></button>`;
+            }).join('<span class="text-gray-800">·</span>');
+
             let html = `
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-7 gap-4">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="inline-flex bg-[#141416] border border-[#1c1c1f] rounded-xl p-1">
-                            <button data-action="setClientsView" data-view="list" class="px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${viewList ? 'bg-[#1b1b1e] text-white' : 'text-gray-500 hover:text-white'}"><i data-lucide="table-2" class="w-4 h-4"></i> Lista</button>
-                            <button data-action="setClientsView" data-view="cards" class="px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${!viewList ? 'bg-[#1b1b1e] text-white' : 'text-gray-500 hover:text-white'}"><i data-lucide="layout-grid" class="w-4 h-4"></i> Cartões</button>
+                <div class="flex flex-col gap-4 mb-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-5 flex-wrap">
+                            <div class="inline-flex bg-[#141416] border border-[#1c1c1f] rounded-xl p-1">
+                                <button data-action="setClientsView" data-view="list" class="px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${viewList ? 'bg-[#1b1b1e] text-white' : 'text-gray-500 hover:text-white'}"><i data-lucide="table-2" class="w-4 h-4"></i> Lista</button>
+                                <button data-action="setClientsView" data-view="cards" class="px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${!viewList ? 'bg-[#1b1b1e] text-white' : 'text-gray-500 hover:text-white'}"><i data-lucide="layout-grid" class="w-4 h-4"></i> Cartões</button>
+                            </div>
+                            <div class="flex gap-1.5 overflow-x-auto scrollbar-hide">${phaseChips}</div>
                         </div>
-                        <div class="flex gap-2 overflow-x-auto scrollbar-hide">
-                            ${['Todos', 'Manutenção', 'Implementação', 'Tratativa'].map(p => `
-                                <button onclick="window.appActions.setClientFilter('${escapeHTML(p)}')" class="px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all whitespace-nowrap ${state.clientFilter === p ? 'bg-red-600 text-white' : 'bg-[#141416] text-gray-500 border border-[#1c1c1f] hover:text-white'}">${escapeHTML(p)}</button>
-                            `).join('')}
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2 text-[11px] text-gray-500">
+                                <span class="uppercase tracking-wide font-semibold whitespace-nowrap">Baixas de</span>
+                                <input type="month" value="${escapeHTML(state.selectedMonth)}" onchange="window.appActions.updateSelectedMonth(this.value)" style="color-scheme:dark" class="bg-[#141416] border border-[#1c1c1f] rounded-lg px-2.5 py-1.5 text-white text-xs focus:border-red-500 outline-none" />
+                            </div>
+                            <button onclick="window.appActions.openClientModal()" class="bg-[#f3f3f4] text-black px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Cadastrar</button>
                         </div>
                     </div>
-                    <button onclick="window.appActions.openClientModal()" class="bg-[#f3f3f4] text-black px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white w-full lg:w-auto transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Cadastrar Projeto</button>
+                    <div class="flex items-center gap-3 flex-wrap">${statusChips}</div>
                 </div>
             `;
 
-            if (list.length === 0) return html + `<div class="py-20 text-center text-gray-500 border border-dashed border-[#1c1c1f] rounded-2xl bg-[#111]">Nenhum projeto encontrado.</div>`;
+            if (shown.length === 0) return html + `<div class="py-16 text-center text-gray-500 border border-dashed border-[#1c1c1f] rounded-2xl">Nenhum projeto neste filtro.</div>`;
 
-            return html + (viewList ? getClientsListHTML(list) : getClientsCardsHTML(list, moTrans));
+            const renderGroup = (items) => viewList ? getClientsListHTML(items) : getClientsCardsHTML(items, moTrans);
+
+            // "Todos" => separa em seções Ativos / Concluídos / Churn
+            if (statusFilter === 'Todos') {
+                return html + [
+                    { key: 'ativo', label: 'Ativos', dot: 'bg-emerald-500' },
+                    { key: 'concluido', label: 'Concluídos', dot: 'bg-blue-500' },
+                    { key: 'churn', label: 'Churn', dot: 'bg-red-500' }
+                ].map(sec => {
+                    const items = shown.filter(c => groupOf(c) === sec.key);
+                    if (!items.length) return '';
+                    return `
+                        <div class="flex items-center gap-3 mt-8 mb-3">
+                            <span class="w-1.5 h-1.5 rounded-full ${sec.dot}"></span>
+                            <h3 class="text-xs uppercase tracking-widest text-gray-500 font-semibold">${sec.label}</h3>
+                            <span class="dfc-mono text-[11px] text-gray-600">${items.length}</span>
+                            <div class="flex-1 border-t border-[#161619]"></div>
+                        </div>
+                        ${renderGroup(items)}`;
+                }).join('');
+            }
+
+            return html + renderGroup(shown);
         }
 
         // Visão em linhas (flat) — enxuta, com datas, atraso, baixa e ação rápida.
@@ -724,8 +770,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             }).join('');
 
             return `
-                <p class="text-[11px] uppercase tracking-widest text-gray-600 font-semibold mb-2">Edição inline — clique na célula, edite e saia (salva sozinho)</p>
-                <div class="bg-[#141416] border border-[#1c1c1f] rounded-2xl overflow-hidden">
+                <div>
                     <div class="overflow-x-auto">
                         <table class="w-full border-collapse" style="min-width:960px">
                             <thead>

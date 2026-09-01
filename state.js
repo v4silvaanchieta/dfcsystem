@@ -13,6 +13,7 @@
             selectedMonth: getInitialMonth(),
             selectedYear: new Date().getFullYear().toString(),
             clientFilter: 'Todos',
+            clientStatusFilter: 'Todos',
             clientsView: 'cards',
             isSignUpMode: false,
             chartInstance: null,
