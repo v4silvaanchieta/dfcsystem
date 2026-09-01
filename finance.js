@@ -106,4 +106,18 @@ if (typeof window !== 'undefined') window.escapeHTML = escapeHTML;
             return { cFixo, cVarFornecedores, custosTotais: cFixo + cVarFornecedores };
         }
 
-export { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts };
+        // Projeto atrasado: tem Data de Entrega, ainda não foi marcado como entregue, e a data já passou.
+        function isClientLate(client) {
+            if (!client || !client.deliveryDate || client.delivered) return false;
+            const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (comparável como string ISO)
+            return client.deliveryDate < today;
+        }
+
+        // Formata YYYY-MM-DD -> DD/MM/AAAA (para exibição).
+        function formatDateBR(d) {
+            if (!d) return '—';
+            const p = d.split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+        }
+
+export { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts, isClientLate, formatDateBR };

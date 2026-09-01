@@ -1,6 +1,6 @@
 // ui.js — Renderização (dashboard, listas, modais), gráficos Chart.js e ações de interface.
 import { state } from './state.js';
-import { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts } from './finance.js';
+import { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts, isClientLate, formatDateBR } from './finance.js';
 
 window.appActions = window.appActions || {};
 
@@ -107,6 +107,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         window.appActions.updateSelectedMonth = (val) => { state.selectedMonth = val; updateYearOptions(); renderContent(); };
         window.appActions.updateSelectedYear = (val) => { state.selectedYear = val; renderContent(); };
         window.appActions.setClientFilter = (f) => { state.clientFilter = f; renderContent(); };
+        window.appActions.setClientsView = (v) => { state.clientsView = v; renderContent(); };
         window.appActions.setMemberChart = (id) => { state.selectedMemberId = id; renderChart(); };
 
         window.appActions.closeModal = () => {
@@ -129,7 +130,9 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             document.getElementById('client-phase').value = c.phase || 'Tratativa';
             document.getElementById('client-status').value = c.status || 'Ativo';
             document.getElementById('client-system').value = c.system || '';
+            document.getElementById('client-startDate').value = c.startDate || '';
             document.getElementById('client-deliveryDate').value = c.deliveryDate || '';
+            document.getElementById('client-delivered').checked = !!c.delivered;
             document.getElementById('client-observation').value = c.observation || '';
 
             setCurrencyInput('client-recurringValue', c.recurringValue);
@@ -463,13 +466,22 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             }
         }
 
+        let _lastRenderedTab = null;
         function renderContent() {
             const content = document.getElementById('tab-content');
             if(!content) return;
 
-            content.classList.remove('animate-fade-in');
-            void content.offsetWidth;
-            content.classList.add('animate-fade-in');
+            // Filtro de período (Mensal/Anual/Geral/Previsto + seletores) só faz sentido em Painel e Fechamento.
+            const pf = document.getElementById('period-filter');
+            if (pf) pf.style.display = (state.activeTab === 'dashboard' || state.activeTab === 'closure') ? '' : 'none';
+
+            // Re-anima SÓ ao trocar de aba — não a cada snapshot (evita a tela "piscar" o tempo todo).
+            if (state.activeTab !== _lastRenderedTab) {
+                content.classList.remove('animate-fade-in');
+                void content.offsetWidth;
+                content.classList.add('animate-fade-in');
+                _lastRenderedTab = state.activeTab;
+            }
 
             if (state.activeTab === 'dashboard') { content.innerHTML = getDashboardHTML(); setTimeout(renderChart, 50); }
             else if (state.activeTab === 'clients') content.innerHTML = getClientsHTML();
@@ -631,25 +643,37 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             };
             list.sort((a, b) => (isClientPending(b) ? 1 : 0) - (isClientPending(a) ? 1 : 0));
 
+            const viewList = state.clientsView === 'list';
             let html = `
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div class="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide">
-                        ${['Todos', 'Manutenção', 'Implementação', 'Tratativa'].map(p => `
-                            <button onclick="window.appActions.setClientFilter('${escapeHTML(p)}')" class="px-5 py-2 rounded-full text-xs font-bold uppercase transition-all whitespace-nowrap ${state.clientFilter === p ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'bg-[#111] text-gray-400 border border-[#333] hover:text-white'}">${escapeHTML(p)}</button>
-                        `).join('')}
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-7 gap-4">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="inline-flex bg-[#141416] border border-[#1c1c1f] rounded-xl p-1">
+                            <button data-action="setClientsView" data-view="list" class="px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${viewList ? 'bg-[#1b1b1e] text-white' : 'text-gray-500 hover:text-white'}"><i data-lucide="table-2" class="w-4 h-4"></i> Lista</button>
+                            <button data-action="setClientsView" data-view="cards" class="px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${!viewList ? 'bg-[#1b1b1e] text-white' : 'text-gray-500 hover:text-white'}"><i data-lucide="layout-grid" class="w-4 h-4"></i> Cartões</button>
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto scrollbar-hide">
+                            ${['Todos', 'Manutenção', 'Implementação', 'Tratativa'].map(p => `
+                                <button onclick="window.appActions.setClientFilter('${escapeHTML(p)}')" class="px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all whitespace-nowrap ${state.clientFilter === p ? 'bg-red-600 text-white' : 'bg-[#141416] text-gray-500 border border-[#1c1c1f] hover:text-white'}">${escapeHTML(p)}</button>
+                            `).join('')}
+                        </div>
                     </div>
-                    <button onclick="window.appActions.openClientModal()" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200 w-full md:w-auto"><i data-lucide="plus" class="w-4 h-4"></i> Cadastrar Projeto</button>
+                    <button onclick="window.appActions.openClientModal()" class="bg-[#f3f3f4] text-black px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white w-full lg:w-auto transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Cadastrar Projeto</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             `;
 
-            if(list.length === 0) html += `<div class="col-span-full py-20 text-center text-gray-500 border border-dashed border-[#333] rounded-2xl bg-[#111]">Nenhum projeto encontrado.</div>`;
+            if (list.length === 0) return html + `<div class="py-20 text-center text-gray-500 border border-dashed border-[#1c1c1f] rounded-2xl bg-[#111]">Nenhum projeto encontrado.</div>`;
 
-            html += list.map(client => {
+            return html + (viewList ? getClientsListHTML(list) : getClientsCardsHTML(list, moTrans));
+        }
+
+        // Cartões (leves) — com Início/Entrega e alerta de atraso.
+        function getClientsCardsHTML(list, moTrans) {
+            return `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">` + list.map(client => {
                 const cTrans = moTrans.filter(t => t.clientId === client.id);
                 const recTrans = cTrans.find(t => t.type === 'recorrente');
                 const otTrans = cTrans.find(t => t.type === 'onetime');
                 const isChurn = client.status === 'Churn';
+                const late = isClientLate(client);
                 const recVal = Number(client.recurringValue) || 0;
                 const otVal = Number(client.oneTimeValue) || 0;
 
@@ -657,7 +681,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 if (client.teamAllocations && client.teamAllocations.length > 0) {
                     teamBadges = client.teamAllocations.map(alloc => {
                         const m = state.team.find(x => x.id === alloc.memberId);
-                        return m ? `<span class="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-900/20 border border-emerald-900/50 px-2 py-0.5 rounded">${escapeHTML(m.name.split(' ')[0])} (${alloc.percentage}%)</span>` : '';
+                        return m ? `<span class="text-[10px] uppercase font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">${escapeHTML(m.name.split(' ')[0])} ${alloc.percentage}%</span>` : '';
                     }).join('');
                 }
 
@@ -665,42 +689,102 @@ if (typeof window !== 'undefined') window.showToast = showToast;
 
                 let recHtml = '', otHtml = '';
                 if(recVal > 0) {
-                    recHtml = `<div class="flex items-center justify-between bg-[#0a0a0a] p-2 rounded-lg border border-[#1a1a1a]">
-                        <div class="flex flex-col"><span class="text-[10px] text-gray-500 uppercase">MRR</span><span class="font-bold text-gray-200">${formatCurrency(recVal)}</span></div>
-                        ${recTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(recTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${recVal}" data-btype="recorrente" class="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-bold">Pagar</button>`}
+                    recHtml = `<div class="flex items-center justify-between bg-[#0f0f11] p-2.5 rounded-lg border border-[#1c1c1f]">
+                        <div class="flex flex-col"><span class="text-[10px] text-gray-600 uppercase tracking-wide">MRR</span><span class="dfc-mono font-semibold text-gray-200">${formatCurrency(recVal)}</span></div>
+                        ${recTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(recTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${recVal}" data-btype="recorrente" class="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-bold hover:bg-red-700">Pagar</button>`}
                     </div>`;
                 }
                 if(otVal > 0 && isClientOTActive(client, state.selectedMonth)) {
-                    otHtml = `<div class="flex items-center justify-between bg-[#0a0a0a] p-2 rounded-lg border border-[#1a1a1a]">
-                        <div class="flex flex-col"><span class="text-[10px] text-gray-500 uppercase">One Time</span><span class="font-bold text-gray-200">${formatCurrency(otVal)}</span></div>
-                        ${otTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(otTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${otVal}" data-btype="onetime" class="text-xs bg-[#222] text-white px-3 py-1.5 rounded-md border border-[#444] font-bold">Pagar</button>`}
+                    otHtml = `<div class="flex items-center justify-between bg-[#0f0f11] p-2.5 rounded-lg border border-[#1c1c1f]">
+                        <div class="flex flex-col"><span class="text-[10px] text-gray-600 uppercase tracking-wide">One Time</span><span class="dfc-mono font-semibold text-gray-200">${formatCurrency(otVal)}</span></div>
+                        ${otTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(otTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${otVal}" data-btype="onetime" class="text-xs bg-[#1b1b1e] text-white px-3 py-1.5 rounded-md border border-[#2a2a2e] font-bold">Pagar</button>`}
                     </div>`;
                 }
 
                 return `
-                    <div class="bg-[#111] border ${isChurn ? 'border-red-900/50 opacity-60' : 'border-[#222]'} rounded-2xl p-6 relative flex flex-col h-full">
-                        ${isChurn ? `<div class="absolute -top-3 -right-3 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-lg rotate-12">CHURN</div>` : ''}
+                    <div class="bg-[#141416] border ${isChurn ? 'border-red-900/40 opacity-60' : (late ? 'border-red-800/50' : 'border-[#1f1f22]')} rounded-2xl p-5 relative flex flex-col h-full hover:border-[#2a2a2e] transition-colors">
+                        ${isChurn ? `<div class="absolute -top-2.5 -right-2.5 bg-red-600 text-white text-[10px] px-2.5 py-1 rounded-lg rotate-6 font-bold">CHURN</div>` : ''}
                         <div class="flex-1 cursor-pointer" data-action="openClientModal" data-id="${escapeHTML(client.id)}">
-                            <div class="flex justify-between items-start mb-4">
+                            <div class="flex justify-between items-start mb-3">
                                 <div>
-                                    <h3 class="font-black text-xl text-white">${escapeHTML(client.name)}</h3>
-                                    <div class="flex flex-wrap gap-2 mt-2">
-                                        ${hasPendingTask ? `<span class="text-[10px] uppercase font-black text-white bg-red-600 px-2 py-0.5 rounded animate-pulse">Tarefa Pendente</span>` : ''}
-                                        <span class="text-[10px] uppercase font-bold text-gray-300 bg-[#222] border border-[#333] px-2 py-0.5 rounded">${escapeHTML(client.phase)}</span>
+                                    <h3 class="font-semibold text-lg text-white tracking-tight">${escapeHTML(client.name)}</h3>
+                                    <div class="flex flex-wrap gap-1.5 mt-2">
+                                        ${late ? `<span class="text-[10px] uppercase font-bold text-white bg-red-600 px-2 py-0.5 rounded animate-pulse">Atrasado</span>` : ''}
+                                        ${hasPendingTask ? `<span class="text-[10px] uppercase font-bold text-white bg-amber-600 px-2 py-0.5 rounded">Tarefa Pendente</span>` : ''}
+                                        <span class="text-[10px] uppercase font-semibold text-gray-400 bg-[#1b1b1e] px-2 py-0.5 rounded">${escapeHTML(client.phase)}</span>
                                         ${teamBadges}
                                     </div>
                                 </div>
-                                <div class="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-gray-500"><i data-lucide="edit-3" class="w-4 h-4"></i></div>
+                                <i data-lucide="pencil" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-500 mt-3">
+                                <span class="flex items-center gap-1.5"><i data-lucide="play" class="w-3 h-3"></i> Início <span class="dfc-mono text-gray-300">${formatDateBR(client.startDate)}</span></span>
+                                <span class="flex items-center gap-1.5"><i data-lucide="flag" class="w-3 h-3"></i> Entrega <span class="dfc-mono ${late ? 'text-red-400 font-semibold' : (client.delivered ? 'text-emerald-400' : 'text-gray-300')}">${formatDateBR(client.deliveryDate)}</span></span>
                             </div>
                         </div>
-                        <div class="pt-4 border-t border-[#222] space-y-2 mt-auto">
+                        <div class="pt-4 border-t border-[#1f1f22] space-y-2 mt-4">
+                            ${late ? `<button data-action="markDelivered" data-id="${escapeHTML(client.id)}" class="w-full bg-emerald-600/15 border border-emerald-700/40 text-emerald-400 hover:bg-emerald-600/25 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"><i data-lucide="check" class="w-3.5 h-3.5"></i> Marcar como entregue</button>` : ''}
                             ${!isChurn ? `${recHtml}${otHtml}` : ''}
-                            <button data-action="openTaskModal" data-clientid="${escapeHTML(client.id)}" class="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 hover:text-white hover:bg-[#222] text-xs font-bold py-2 rounded-md flex items-center justify-center gap-2 transition-colors"><i data-lucide="clipboard-plus" class="w-3.5 h-3.5"></i> Gerar Tarefa</button>
+                            <button data-action="openTaskModal" data-clientid="${escapeHTML(client.id)}" class="w-full bg-[#1b1b1e] border border-[#2a2a2e] text-gray-400 hover:text-white hover:bg-[#222] text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"><i data-lucide="clipboard-plus" class="w-3.5 h-3.5"></i> Gerar Tarefa</button>
                         </div>
                     </div>
                 `;
+            }).join('') + `</div>`;
+        }
+
+        // Lista editável (estilo planilha) — edita qualquer campo escalar; salva ao sair da célula.
+        function getClientsListHTML(list) {
+            const fases = ['Tratativa', 'Implementação', 'Manutenção'];
+            const statuses = ['Ativo', 'Churn'];
+            const totalMRR = list.reduce((a, c) => a + Number(c.recurringValue || 0), 0);
+            const rows = list.map(client => {
+                const cid = escapeHTML(client.id);
+                const late = isClientLate(client);
+                const faseOpts = fases.map(f => `<option ${f === (client.phase || '') ? 'selected' : ''}>${f}</option>`).join('');
+                const statusOpts = statuses.map(s => `<option ${s === (client.status || 'Ativo') ? 'selected' : ''}>${s}</option>`).join('');
+                return `
+                    <tr class="border-b border-[#161619] hover:bg-[#141416] ${client.status === 'Churn' ? 'opacity-60' : ''}">
+                        <td class="border-r border-[#161619]"><input class="cell-edit font-medium" data-id="${cid}" data-field="name" value="${escapeHTML(client.name || '')}" /></td>
+                        <td class="border-r border-[#161619]"><select class="cell-edit" data-id="${cid}" data-field="phase">${faseOpts}</select></td>
+                        <td class="border-r border-[#161619]"><select class="cell-edit" data-id="${cid}" data-field="status">${statusOpts}</select></td>
+                        <td class="border-r border-[#161619]"><input class="cell-edit" data-id="${cid}" data-field="system" value="${escapeHTML(client.system || '')}" placeholder="—" /></td>
+                        <td class="border-r border-[#161619]"><input type="date" style="color-scheme:dark" class="cell-edit dfc-mono text-xs" data-id="${cid}" data-field="startDate" value="${escapeHTML(client.startDate || '')}" /></td>
+                        <td class="border-r border-[#161619]"><input type="date" style="color-scheme:dark" class="cell-edit dfc-mono text-xs ${late ? 'cell-late' : ''}" data-id="${cid}" data-field="deliveryDate" value="${escapeHTML(client.deliveryDate || '')}" /></td>
+                        <td class="border-r border-[#161619] text-center px-2"><input type="checkbox" class="w-4 h-4 accent-emerald-500 align-middle cursor-pointer" data-id="${cid}" data-field="delivered" data-celltype="check" ${client.delivered ? 'checked' : ''} /></td>
+                        <td class="border-r border-[#161619]"><input class="cell-edit dfc-mono text-right currency-mask" data-id="${cid}" data-field="recurringValue" data-celltype="currency" data-value="${Number(client.recurringValue || 0)}" value="${formatNumberToBR(client.recurringValue)}" /></td>
+                        <td class="border-r border-[#161619]"><input class="cell-edit dfc-mono text-right currency-mask" data-id="${cid}" data-field="oneTimeValue" data-celltype="currency" data-value="${Number(client.oneTimeValue || 0)}" value="${formatNumberToBR(client.oneTimeValue)}" /></td>
+                        <td class="text-center px-2"><button data-action="openClientModal" data-id="${cid}" class="w-7 h-7 inline-flex items-center justify-center text-gray-600 hover:text-white rounded-md hover:bg-[#1b1b1e] transition-colors" title="Abrir (rateio, observações)"><i data-lucide="maximize-2" class="w-3.5 h-3.5"></i></button></td>
+                    </tr>`;
             }).join('');
-            return html + '</div>';
+
+            return `
+                <p class="text-[11px] uppercase tracking-widest text-gray-600 font-semibold mb-2">Edição inline — clique na célula, edite e saia (salva sozinho)</p>
+                <div class="bg-[#141416] border border-[#1c1c1f] rounded-2xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse" style="min-width:960px">
+                            <thead>
+                                <tr class="bg-[#0f0f11] border-b border-[#242427] text-[10px] uppercase tracking-wider text-gray-600">
+                                    <th class="text-left font-semibold px-3 py-3">Cliente / Empresa</th>
+                                    <th class="text-left font-semibold px-3 py-3">Fase</th>
+                                    <th class="text-left font-semibold px-3 py-3">Status</th>
+                                    <th class="text-left font-semibold px-3 py-3">Sistema</th>
+                                    <th class="text-left font-semibold px-3 py-3">Início</th>
+                                    <th class="text-left font-semibold px-3 py-3">Entrega</th>
+                                    <th class="text-center font-semibold px-3 py-3">Entregue</th>
+                                    <th class="text-right font-semibold px-3 py-3">MRR</th>
+                                    <th class="text-right font-semibold px-3 py-3">Setup</th>
+                                    <th class="px-3 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-between items-center px-4 py-3 border-t border-[#242427] bg-[#0f0f11] text-xs text-gray-500">
+                        <span>${list.length} ${list.length === 1 ? 'cliente' : 'clientes'}</span>
+                        <span>MRR total <span class="dfc-mono text-gray-200 font-semibold">${formatCurrency(totalMRR)}</span></span>
+                    </div>
+                </div>
+            `;
         }
 
         // ================= OPERAÇÃO (KANBAN DE TAREFAS) =================

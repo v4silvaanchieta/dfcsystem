@@ -14,12 +14,30 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Tipografia (IBM Plex — cara de produto financeiro) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
     <style>
-        body { background-color: #0a0a0a; color: #e5e7eb; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; overflow-x: hidden; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #141414; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        body { background-color: #0a0a0a; color: #e5e7eb; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 7px; height: 7px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+        /* Números financeiros: mono alinhado */
+        .dfc-mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+        /* Lista editável (estilo planilha) */
+        .cell-edit { width: 100%; background: transparent; border: 0; color: #ececed; font: inherit; padding: 10px 12px; outline: 0; transition: box-shadow .12s, background .12s; }
+        .cell-edit::placeholder { color: #5c5c63; }
+        .cell-edit:hover { background: #1a1a1e; }
+        .cell-edit:focus { background: #1b1b1e; box-shadow: inset 0 0 0 1.5px #e5342f; border-radius: 3px; }
+        select.cell-edit { appearance: none; cursor: pointer; }
+        .cell-saved { animation: cellSaved 1s ease; }
+        @keyframes cellSaved { 0% { box-shadow: inset 0 0 0 1.5px #10b981; } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+        .cell-late { color: #ff6b66 !important; font-weight: 600; }
 
         .hidden { display: none !important; }
 
@@ -151,7 +169,7 @@
                     <h1 id="header-title" class="text-2xl font-bold text-white capitalize hidden sm:block tracking-tight">Dashboard</h1>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-4 w-full md:w-auto justify-end">
+                <div id="period-filter" class="flex flex-wrap items-center gap-4 w-full md:w-auto justify-end">
                     <!-- Filtro Quádruplo -->
                     <div class="flex bg-[#1a1a1a] rounded-lg border border-[#333] p-1 overflow-x-auto">
                         <button id="filter-btn-month" onclick="window.appActions.setFilterMode('month')" class="px-3 md:px-4 py-1.5 text-xs font-bold rounded-md bg-[#333] text-white shadow-sm transition-all whitespace-nowrap">Mensal</button>
@@ -225,13 +243,24 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="col-span-2 md:col-span-1">
+                        <div class="col-span-2">
                             <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Sistema</label>
                             <input type="text" id="client-system" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" placeholder="Ex: Kommo" />
                         </div>
                         <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Data de Entrega / Início</label>
+                            <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Data de Início</label>
+                            <input type="date" id="client-startDate" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" style="color-scheme: dark;" />
+                        </div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase">Data de Entrega</label>
                             <input type="date" id="client-deliveryDate" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-3 text-white focus:border-red-500 outline-none" style="color-scheme: dark;" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="flex items-center gap-3 cursor-pointer bg-[#0a0a0a] border border-[#333] rounded-lg p-3 hover:border-emerald-600/50 transition-colors">
+                                <input type="checkbox" id="client-delivered" class="w-4 h-4 accent-emerald-500" />
+                                <span class="text-xs font-bold text-gray-300 uppercase">Marcar como Entregue</span>
+                                <span class="text-[10px] text-gray-500 ml-auto">Remove o alerta de atraso</span>
+                            </label>
                         </div>
                     </div>
 

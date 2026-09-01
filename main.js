@@ -92,7 +92,9 @@ window.appActions = window.appActions || {};
                 phase: document.getElementById('client-phase').value,
                 status: document.getElementById('client-status').value,
                 system: document.getElementById('client-system').value,
+                startDate: document.getElementById('client-startDate').value,
                 deliveryDate: document.getElementById('client-deliveryDate').value,
+                delivered: document.getElementById('client-delivered').checked,
                 recurringValue: getCurrencyInput('client-recurringValue'),
                 oneTimeValue: getCurrencyInput('client-oneTimeValue'),
                 observation: document.getElementById('client-observation').value,
@@ -421,6 +423,34 @@ window.appActions = window.appActions || {};
             } catch (e) { showToast('Erro', 'error'); }
         };
 
+        // ================= EDIÇÃO INLINE DE CLIENTES (lista estilo planilha) =================
+        // Atualiza um único campo de um cliente direto no Firestore (sem abrir modal).
+        window.appActions.updateClientField = async (id, field, value) => {
+            if (!state.user || !id || !field) return false;
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'clients', id), { [field]: value, updatedAt: serverTimestamp() });
+                return true;
+            } catch (e) { showToast('Erro ao salvar', 'error'); return false; }
+        };
+
+        window.appActions.markDelivered = async (id) => {
+            await window.appActions.updateClientField(id, 'delivered', true);
+            showToast('Marcado como entregue!');
+        };
+
+        // Salva a célula quando o usuário sai dela (change dispara no blur de inputs e na seleção de selects/checkbox).
+        document.addEventListener('change', async (e) => {
+            const el = e.target.closest('[data-field]');
+            if (!el || !el.dataset.id) return;
+            const { id, field, celltype } = el.dataset;
+            let value;
+            if (celltype === 'currency') value = Number(el.dataset.value || 0);
+            else if (celltype === 'check') value = el.checked;
+            else value = el.value;
+            const ok = await window.appActions.updateClientField(id, field, value);
+            if (ok) { el.classList.remove('cell-saved'); void el.offsetWidth; el.classList.add('cell-saved'); }
+        });
+
         // ================= DELEGAÇÃO DE CLIQUES (data-action / data-id — evita interpolar ids inline e o "Unexpected token") =================
         document.addEventListener('click', (e) => {
             const el = e.target.closest('[data-action]');
@@ -429,6 +459,8 @@ window.appActions = window.appActions || {};
             const A = window.appActions;
             switch (d.action) {
                 case 'openClientModal': A.openClientModal(d.id); break;
+                case 'setClientsView': A.setClientsView(d.view); break;
+                case 'markDelivered': A.markDelivered(d.id); break;
                 case 'openItemModal': A.openItemModal(d.cat, d.id || ''); break;
                 case 'deleteItem': A.deleteItem(d.coll, d.id); break;
                 case 'darBaixa': A.darBaixa(d.id, Number(d.val), d.btype); break;
