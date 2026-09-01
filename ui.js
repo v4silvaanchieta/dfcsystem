@@ -308,10 +308,11 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             const navMenu = document.getElementById('nav-menu');
             if (navMenu) {
                 navMenu.innerHTML = tabs.map(t => {
-                    const activeClass = state.activeTab === t.id ? 'bg-red-600 text-white font-bold shadow-lg shadow-red-900/40 translate-x-1' : 'text-gray-400 hover:bg-[#222] hover:text-white font-medium hover:translate-x-1';
+                    const active = state.activeTab === t.id;
                     return `
-                    <button onclick="window.appActions.changeTab('${escapeHTML(t.id)}')" class="flex items-center gap-3 w-full p-3.5 rounded-xl transition-all duration-300 ${activeClass}">
-                        <i data-lucide="${t.icon}" class="w-5 h-5"></i><span>${t.label}</span>
+                    <button onclick="window.appActions.changeTab('${escapeHTML(t.id)}')" class="relative flex items-center gap-3 w-full pl-4 pr-3 py-2.5 rounded-lg transition-colors ${active ? 'text-white bg-[#141416]' : 'text-gray-500 hover:text-white'}">
+                        <span class="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-full ${active ? 'bg-red-500' : 'bg-transparent'}"></span>
+                        <i data-lucide="${t.icon}" class="w-[18px] h-[18px]"></i><span class="text-sm font-medium">${t.label}</span>
                     </button>`;
                 }).join('');
             }
@@ -496,6 +497,16 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         }
 
 
+        // Linha de KPIs flat (sem caixões): número grande + label, separados por régua fina.
+        function kpiRow(items) {
+            return `<div class="grid grid-cols-1 sm:grid-cols-3 border-t border-[#1a1a1d]">` + items.map((it, i) => `
+                <div class="px-5 py-5 ${i < items.length - 1 ? 'sm:border-r' : ''} border-b sm:border-b-0 border-[#1a1a1d]">
+                    <div class="text-[11px] uppercase tracking-wider text-gray-600 font-semibold flex items-center gap-2">${it.dot ? `<span class="w-1.5 h-1.5 rounded-full ${it.dot}"></span>` : ''}${it.label}</div>
+                    <div class="dfc-mono ${it.big ? 'text-4xl' : 'text-3xl'} font-semibold ${it.color || 'text-white'} mt-2.5 tracking-tight">${it.value}</div>
+                    ${it.sub ? `<div class="text-xs text-gray-500 mt-1.5">${it.sub}</div>` : ''}
+                </div>`).join('') + `</div>`;
+        }
+
         function getDashboardHTML() {
             const mode = state.filterMode;
             const equipeChart = state.team.filter(m => (m.itemType || 'equipe') !== 'manutencao');
@@ -517,21 +528,11 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 const lucroPrevisto = finPrev.lucroLiquido;
 
                 infoText = `<strong>Visão Prevista:</strong> Projetando a fotografia do momento como se todas as receitas ativas fossem pagas neste mês.`;
-                totalsHTML = `
-                    <div class="p-6 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] shadow-lg relative group">
-                        <h3 class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-blue-500"></div> Faturamento Previsto (MRR + OT)</h3>
-                        <div class="text-3xl font-bold text-white mb-1">${formatCurrency(totalFaturamentoPrevisto)}</div>
-                    </div>
-                    <div class="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/20 to-[#0a0a0a] border border-emerald-900/30 shadow-lg relative group">
-                        <h3 class="text-emerald-500 text-xs uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Margem Prevista (DFC)</h3>
-                        <div class="text-3xl font-bold text-white mb-1">${formatCurrency(totalMargemPrevista)}</div>
-                        <p class="text-xs text-gray-500 font-medium mt-2 border-t border-emerald-900/30 pt-2 flex justify-between"><span>Custos Equipe (Forn. já na margem):</span><span class="text-red-400 font-bold">-${formatCurrency(cFixo)}</span></p>
-                    </div>
-                    <div class="p-6 rounded-2xl ${lucroPrevisto >= 0 ? 'bg-gradient-to-br from-emerald-900/40 border-emerald-500/50' : 'bg-gradient-to-br from-red-900/40 border-red-500/50'} border shadow-lg relative group">
-                        <h3 class="text-white/70 text-xs uppercase font-bold tracking-widest mb-2">Lucro Potencial</h3>
-                        <div class="text-4xl font-black text-white">${formatCurrency(lucroPrevisto)}</div>
-                    </div>
-                `;
+                totalsHTML = kpiRow([
+                    { label: 'Faturamento Previsto (MRR + OT)', dot: 'bg-blue-500', value: formatCurrency(totalFaturamentoPrevisto) },
+                    { label: 'Margem Prevista (DFC)', dot: 'bg-emerald-500', value: formatCurrency(totalMargemPrevista), sub: `− Custos Equipe ${formatCurrency(cFixo)} (fornecedor já na margem)` },
+                    { label: 'Lucro Potencial', value: formatCurrency(lucroPrevisto), color: lucroPrevisto >= 0 ? 'text-emerald-400' : 'text-red-400', big: true }
+                ]);
             } else if (mode === 'year' || mode === 'all') {
                 const isAll = mode === 'all';
                 const contextYear = isAll ? 'Todo o Período' : state.selectedYear;
@@ -543,21 +544,11 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 const cTotais = realMargin - lucro;
 
                 infoText = `<strong>Visão Consolidada (${contextYear}):</strong> Soma baseada em todos os meses que já foram fechados e travados.`;
-                totalsHTML = `
-                    <div class="p-6 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] shadow-lg relative group">
-                        <h3 class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-gray-500"></div> MRR Bruto Realizado</h3>
-                        <div class="text-3xl font-bold text-white mb-1">${formatCurrency(realMRR)}</div>
-                    </div>
-                    <div class="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/20 to-[#0a0a0a] border border-emerald-900/30 shadow-lg relative group">
-                        <h3 class="text-emerald-500 text-xs uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> Margem DFC Gerada</h3>
-                        <div class="text-3xl font-bold text-white mb-1">${formatCurrency(realMargin)}</div>
-                        <p class="text-xs text-gray-500 font-medium mt-2 border-t border-emerald-900/30 pt-2 flex justify-between"><span>Custos Históricos:</span><span class="text-red-400 font-bold">-${formatCurrency(cTotais)}</span></p>
-                    </div>
-                    <div class="p-6 rounded-2xl ${lucro >= 0 ? 'bg-gradient-to-br from-emerald-900/40 border-emerald-500/50' : 'bg-gradient-to-br from-red-900/40 border-red-500/50'} border shadow-lg relative group">
-                        <h3 class="text-white/70 text-xs uppercase font-bold tracking-widest mb-2">Lucro Consolidado</h3>
-                        <div class="text-4xl font-black text-white">${formatCurrency(lucro)}</div>
-                    </div>
-                `;
+                totalsHTML = kpiRow([
+                    { label: 'MRR Bruto Realizado', dot: 'bg-gray-500', value: formatCurrency(realMRR) },
+                    { label: 'Margem DFC Gerada', dot: 'bg-emerald-500', value: formatCurrency(realMargin), sub: `− Custos ${formatCurrency(cTotais)}` },
+                    { label: 'Lucro Consolidado', value: formatCurrency(lucro), color: lucro >= 0 ? 'text-emerald-400' : 'text-red-400', big: true }
+                ]);
             } else {
                 const closedMonth = state.closures.find(c => c.month === state.selectedMonth);
                 let realMRR = 0, realOT = 0, realMargin = 0, cTotais = 0, lucro = 0;
@@ -582,47 +573,31 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 }
 
                 infoText = `<strong>Visão do Mês (${state.selectedMonth}):</strong> Cruzamento das receitas efetivamente recebidas contra os custos configurados para este mês.`;
-                totalsHTML = `
-                    <div class="p-6 rounded-2xl bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#222] shadow-lg relative group">
-                        <h3 class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-gray-500"></div> MRR Bruto Realizado</h3>
-                        <div class="text-3xl font-bold text-white mb-1">${formatCurrency(realMRR)}</div>
-                    </div>
-                    <div class="p-6 rounded-2xl bg-gradient-to-br from-emerald-950/20 to-[#0a0a0a] border border-emerald-900/30 shadow-lg relative group">
-                        <h3 class="text-emerald-500 text-xs uppercase font-bold tracking-widest mb-2 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-emerald-50 animate-pulse"></div> Margem DFC Realizada</h3>
-                        <div class="text-3xl font-bold text-white mb-1">${formatCurrency(realMargin)}</div>
-                        <p class="text-xs text-gray-500 font-medium mt-2 border-t border-emerald-900/30 pt-2 flex justify-between"><span>Custos Aplicáveis:</span><span class="text-red-400 font-bold">-${formatCurrency(cTotais)}</span></p>
-                    </div>
-                    <div class="p-6 rounded-2xl ${lucro >= 0 ? 'bg-gradient-to-br from-emerald-900/40 border-emerald-500/50' : 'bg-gradient-to-br from-red-900/40 border-red-500/50'} border shadow-lg relative group">
-                        <h3 class="text-white/70 text-xs uppercase font-bold tracking-widest mb-2">Resultado do Mês ${isLocked ? '(Fechado)' : ''}</h3>
-                        <div class="text-4xl font-black text-white">${formatCurrency(lucro)}</div>
-                    </div>
-                `;
+                totalsHTML = kpiRow([
+                    { label: 'MRR Bruto Realizado', dot: 'bg-gray-500', value: formatCurrency(realMRR) },
+                    { label: 'Margem DFC Realizada', dot: 'bg-emerald-500', value: formatCurrency(realMargin), sub: `− Custos ${formatCurrency(cTotais)}` },
+                    { label: `Resultado do Mês ${isLocked ? '(Fechado)' : ''}`, value: formatCurrency(lucro), color: lucro >= 0 ? 'text-emerald-400' : 'text-red-400', big: true }
+                ]);
             }
 
             return `
-                <div class="space-y-6 animate-fade-in">
-                    <div class="bg-blue-900/10 border border-blue-900/30 rounded-xl p-4 flex items-start gap-3 shadow-inner">
-                        <i data-lucide="info" class="text-blue-400 w-5 h-5 flex-shrink-0 mt-0.5"></i>
-                        <p class="text-sm text-blue-200/80 leading-relaxed">${infoText}</p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">${totalsHTML}</div>
+                <div class="space-y-8 animate-fade-in">
+                    <p class="text-[13px] text-gray-500 leading-relaxed flex items-start gap-2.5"><i data-lucide="info" class="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5"></i><span>${infoText}</span></p>
+                    ${totalsHTML}
 
-                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 shadow-xl flex flex-col">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-bold text-white tracking-tight">Análise Geral (Margem x Custo)</h3>
-                            </div>
-                            <div class="h-80 w-full relative flex-1"><canvas id="yearlyChart"></canvas></div>
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-8 pt-2">
+                        <div class="flex flex-col">
+                            <h3 class="text-xs uppercase tracking-wider text-gray-600 font-semibold mb-4">Análise Geral (Margem × Custo)</h3>
+                            <div class="h-72 w-full relative flex-1"><canvas id="yearlyChart"></canvas></div>
                         </div>
-
-                        <div class="bg-[#111] border border-[#222] rounded-2xl p-6 shadow-xl flex flex-col">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                                <h3 class="text-xl font-bold text-white tracking-tight">Desempenho da Equipe</h3>
-                                <select onchange="window.appActions.setMemberChart(this.value)" class="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 text-sm text-white focus:border-red-500">
+                        <div class="flex flex-col">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                                <h3 class="text-xs uppercase tracking-wider text-gray-600 font-semibold">Desempenho da Equipe</h3>
+                                <select onchange="window.appActions.setMemberChart(this.value)" class="bg-[#141416] border border-[#242428] rounded-lg px-3 py-1.5 text-sm text-white focus:border-red-500 outline-none">
                                     ${equipeChart.length===0?'<option>Sem Equipe</option>':equipeChart.map(m=>`<option value="${escapeHTML(m.id)}" ${state.selectedMemberId===m.id?'selected':''}>${escapeHTML(m.name)}</option>`).join('')}
                                 </select>
                             </div>
-                            <div class="h-80 w-full relative flex-1"><canvas id="memberChart"></canvas></div>
+                            <div class="h-72 w-full relative flex-1"><canvas id="memberChart"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -666,9 +641,10 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             return html + (viewList ? getClientsListHTML(list) : getClientsCardsHTML(list, moTrans));
         }
 
-        // Cartões (leves) — com Início/Entrega e alerta de atraso.
+        // Visão em linhas (flat) — enxuta, com datas, atraso, baixa e ação rápida.
         function getClientsCardsHTML(list, moTrans) {
-            return `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">` + list.map(client => {
+            return `<div class="divide-y divide-[#1a1a1d]">` + list.map(client => {
+                const cid = escapeHTML(client.id);
                 const cTrans = moTrans.filter(t => t.clientId === client.id);
                 const recTrans = cTrans.find(t => t.type === 'recorrente');
                 const otTrans = cTrans.find(t => t.type === 'onetime');
@@ -676,56 +652,46 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 const late = isClientLate(client);
                 const recVal = Number(client.recurringValue) || 0;
                 const otVal = Number(client.oneTimeValue) || 0;
+                const otActive = otVal > 0 && isClientOTActive(client, state.selectedMonth);
+                const hasPendingTask = state.tasks.some(t => t.clientId === client.id && t.status !== 'solucionado');
 
                 let teamBadges = '';
                 if (client.teamAllocations && client.teamAllocations.length > 0) {
                     teamBadges = client.teamAllocations.map(alloc => {
                         const m = state.team.find(x => x.id === alloc.memberId);
-                        return m ? `<span class="text-[10px] uppercase font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">${escapeHTML(m.name.split(' ')[0])} ${alloc.percentage}%</span>` : '';
-                    }).join('');
+                        return m ? `<span class="text-emerald-500/80">${escapeHTML(m.name.split(' ')[0])} ${alloc.percentage}%</span>` : '';
+                    }).filter(Boolean).join('<span class="text-gray-700">·</span>');
                 }
 
-                const hasPendingTask = state.tasks.some(t => t.clientId === client.id && t.status !== 'solucionado');
-
-                let recHtml = '', otHtml = '';
-                if(recVal > 0) {
-                    recHtml = `<div class="flex items-center justify-between bg-[#0f0f11] p-2.5 rounded-lg border border-[#1c1c1f]">
-                        <div class="flex flex-col"><span class="text-[10px] text-gray-600 uppercase tracking-wide">MRR</span><span class="dfc-mono font-semibold text-gray-200">${formatCurrency(recVal)}</span></div>
-                        ${recTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(recTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${recVal}" data-btype="recorrente" class="text-xs bg-red-600 text-white px-3 py-1.5 rounded-md font-bold hover:bg-red-700">Pagar</button>`}
-                    </div>`;
-                }
-                if(otVal > 0 && isClientOTActive(client, state.selectedMonth)) {
-                    otHtml = `<div class="flex items-center justify-between bg-[#0f0f11] p-2.5 rounded-lg border border-[#1c1c1f]">
-                        <div class="flex flex-col"><span class="text-[10px] text-gray-600 uppercase tracking-wide">One Time</span><span class="dfc-mono font-semibold text-gray-200">${formatCurrency(otVal)}</span></div>
-                        ${otTrans ? `<button data-action="removeBaixa" data-id="${escapeHTML(otTrans.id)}" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-md border border-emerald-500/20 font-bold">Recebido</button>` : `<button data-action="darBaixa" data-id="${escapeHTML(client.id)}" data-val="${otVal}" data-btype="onetime" class="text-xs bg-[#1b1b1e] text-white px-3 py-1.5 rounded-md border border-[#2a2a2e] font-bold">Pagar</button>`}
-                    </div>`;
-                }
+                const payBtn = (val, type, trans) => trans
+                    ? `<button data-action="removeBaixa" data-id="${escapeHTML(trans.id)}" class="text-[11px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-md font-semibold whitespace-nowrap">Recebido</button>`
+                    : `<button data-action="darBaixa" data-id="${cid}" data-val="${val}" data-btype="${type}" class="text-[11px] bg-red-600 text-white px-2.5 py-1 rounded-md font-semibold whitespace-nowrap hover:bg-red-700">Pagar</button>`;
 
                 return `
-                    <div class="bg-[#141416] border ${isChurn ? 'border-red-900/40 opacity-60' : (late ? 'border-red-800/50' : 'border-[#1f1f22]')} rounded-2xl p-5 relative flex flex-col h-full hover:border-[#2a2a2e] transition-colors">
-                        ${isChurn ? `<div class="absolute -top-2.5 -right-2.5 bg-red-600 text-white text-[10px] px-2.5 py-1 rounded-lg rotate-6 font-bold">CHURN</div>` : ''}
-                        <div class="flex-1 cursor-pointer" data-action="openClientModal" data-id="${escapeHTML(client.id)}">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 class="font-semibold text-lg text-white tracking-tight">${escapeHTML(client.name)}</h3>
-                                    <div class="flex flex-wrap gap-1.5 mt-2">
-                                        ${late ? `<span class="text-[10px] uppercase font-bold text-white bg-red-600 px-2 py-0.5 rounded animate-pulse">Atrasado</span>` : ''}
-                                        ${hasPendingTask ? `<span class="text-[10px] uppercase font-bold text-white bg-amber-600 px-2 py-0.5 rounded">Tarefa Pendente</span>` : ''}
-                                        <span class="text-[10px] uppercase font-semibold text-gray-400 bg-[#1b1b1e] px-2 py-0.5 rounded">${escapeHTML(client.phase)}</span>
-                                        ${teamBadges}
-                                    </div>
-                                </div>
-                                <i data-lucide="pencil" class="w-4 h-4 text-gray-600 flex-shrink-0"></i>
+                    <div class="group flex items-center gap-4 py-3.5 px-2 -mx-2 rounded-lg hover:bg-[#0e0e10] transition-colors ${isChurn ? 'opacity-50' : ''}">
+                        <div class="flex-1 min-w-0 cursor-pointer" data-action="openClientModal" data-id="${cid}">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-semibold text-white truncate">${escapeHTML(client.name)}</span>
+                                ${late ? `<span class="text-[9px] uppercase font-bold text-white bg-red-600 px-1.5 py-0.5 rounded animate-pulse">Atrasado</span>` : ''}
+                                ${hasPendingTask ? `<span class="text-[9px] uppercase font-bold text-white bg-amber-600 px-1.5 py-0.5 rounded">Tarefa</span>` : ''}
+                                ${isChurn ? `<span class="text-[9px] uppercase font-bold text-red-400 border border-red-900/50 px-1.5 py-0.5 rounded">Churn</span>` : ''}
                             </div>
-                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-500 mt-3">
-                                <span class="flex items-center gap-1.5"><i data-lucide="play" class="w-3 h-3"></i> Início <span class="dfc-mono text-gray-300">${formatDateBR(client.startDate)}</span></span>
-                                <span class="flex items-center gap-1.5"><i data-lucide="flag" class="w-3 h-3"></i> Entrega <span class="dfc-mono ${late ? 'text-red-400 font-semibold' : (client.delivered ? 'text-emerald-400' : 'text-gray-300')}">${formatDateBR(client.deliveryDate)}</span></span>
+                            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-500 mt-1">
+                                <span class="text-gray-400">${escapeHTML(client.phase)}</span>
+                                ${client.system ? `<span class="text-gray-700">·</span><span>${escapeHTML(client.system)}</span>` : ''}
+                                <span class="text-gray-700">·</span><span>Entrega <span class="dfc-mono ${late ? 'text-red-400 font-semibold' : (client.delivered ? 'text-emerald-400' : 'text-gray-300')}">${formatDateBR(client.deliveryDate)}</span></span>
+                                ${teamBadges ? `<span class="text-gray-700">·</span>${teamBadges}` : ''}
                             </div>
                         </div>
-                        <div class="pt-4 border-t border-[#1f1f22] space-y-2 mt-4">
-                            ${late ? `<button data-action="markDelivered" data-id="${escapeHTML(client.id)}" class="w-full bg-emerald-600/15 border border-emerald-700/40 text-emerald-400 hover:bg-emerald-600/25 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"><i data-lucide="check" class="w-3.5 h-3.5"></i> Marcar como entregue</button>` : ''}
-                            ${!isChurn ? `${recHtml}${otHtml}` : ''}
-                            <button data-action="openTaskModal" data-clientid="${escapeHTML(client.id)}" class="w-full bg-[#1b1b1e] border border-[#2a2a2e] text-gray-400 hover:text-white hover:bg-[#222] text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"><i data-lucide="clipboard-plus" class="w-3.5 h-3.5"></i> Gerar Tarefa</button>
+                        <div class="text-right flex-shrink-0">
+                            <div class="dfc-mono font-semibold text-white">${formatCurrency(recVal)}</div>
+                            <div class="text-[9px] text-gray-600 uppercase tracking-wide">MRR/mês</div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            ${!isChurn && recVal > 0 ? payBtn(recVal, 'recorrente', recTrans) : ''}
+                            ${!isChurn && otActive ? `<span class="hidden sm:inline">${payBtn(otVal, 'onetime', otTrans)}</span>` : ''}
+                            ${late ? `<button data-action="markDelivered" data-id="${cid}" title="Marcar como entregue" class="w-7 h-7 inline-flex items-center justify-center text-emerald-400 hover:bg-emerald-600/15 rounded-md"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
+                            <button data-action="openTaskModal" data-clientid="${cid}" title="Gerar tarefa" class="w-7 h-7 inline-flex items-center justify-center text-gray-500 hover:text-white hover:bg-[#1b1b1e] rounded-md opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="clipboard-plus" class="w-4 h-4"></i></button>
                         </div>
                     </div>
                 `;

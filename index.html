@@ -130,7 +130,7 @@
         <div id="sidebar-overlay" onclick="window.appActions.toggleMobileMenu()" class="fixed inset-0 bg-black/70 z-40 hidden backdrop-blur-sm transition-all"></div>
 
         <!-- Sidebar Responsiva -->
-        <nav id="sidebar" class="fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-50 w-64 bg-[#111] border-r border-[#222] flex flex-col justify-between h-screen shadow-2xl md:shadow-none">
+        <nav id="sidebar" class="fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-50 w-60 bg-[#0b0b0c] border-r border-[#1a1a1d] flex flex-col justify-between h-screen shadow-2xl md:shadow-none">
             <div class="flex flex-col w-full h-full">
                 <div class="flex p-6 items-center justify-between border-b border-[#222] bg-[#141414]">
                     <div class="flex items-center gap-3">
@@ -140,7 +140,7 @@
                     <button onclick="window.appActions.toggleMobileMenu()" class="md:hidden text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
 
-                <div class="p-5 border-b border-[#222] bg-[#171717] flex items-center gap-3 cursor-pointer hover:bg-[#222] transition-colors group" onclick="window.appActions.changeTab('profile')">
+                <div class="p-5 border-b border-[#1a1a1d] flex items-center gap-3 cursor-pointer hover:bg-[#141416] transition-colors group" onclick="window.appActions.changeTab('profile')">
                     <img id="sidebar-avatar-img" class="w-11 h-11 rounded-full border-2 border-red-500/50 group-hover:border-red-500 object-cover hidden transition-colors" src="" alt="Avatar" />
                     <div id="sidebar-avatar-initial" class="w-11 h-11 rounded-full bg-red-900/30 border-2 border-red-500/50 group-hover:border-red-500 flex items-center justify-center font-bold text-red-400 transition-colors">U</div>
                     <div class="overflow-hidden flex-1">
@@ -161,7 +161,7 @@
 
         <!-- Main Content -->
         <main class="flex-1 h-screen overflow-y-auto relative flex flex-col bg-[#0a0a0a]">
-            <header class="bg-[#141414]/80 backdrop-blur-lg border-b border-[#222] p-4 md:px-8 flex flex-wrap md:flex-nowrap justify-between items-center sticky top-0 z-30 gap-4">
+            <header class="bg-[#0a0a0b]/80 backdrop-blur-lg border-b border-[#1a1a1d] p-4 md:px-8 flex flex-wrap md:flex-nowrap justify-between items-center sticky top-0 z-30 gap-4">
                 <div class="flex items-center gap-4">
                     <button onclick="window.appActions.toggleMobileMenu()" class="md:hidden text-gray-400 hover:text-white transition-colors bg-[#222] p-2 rounded-lg">
                         <i data-lucide="menu" class="w-5 h-5"></i>
