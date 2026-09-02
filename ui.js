@@ -109,6 +109,11 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         window.appActions.setClientFilter = (f) => { state.clientFilter = f; renderContent(); };
         window.appActions.setClientsView = (v) => { state.clientsView = v; renderContent(); };
         window.appActions.setClientStatusFilter = (f) => { state.clientStatusFilter = f; renderContent(); };
+        window.appActions.setClientSort = (field) => {
+            const s = state.clientSort || { field: null, dir: 'asc' };
+            state.clientSort = s.field === field ? { field, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { field, dir: 'asc' };
+            renderContent();
+        };
         window.appActions.setMemberChart = (id) => { state.selectedMemberId = id; renderChart(); };
 
         window.appActions.closeModal = () => {
@@ -794,8 +799,31 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         function getClientsListHTML(list) {
             const fases = ['Tratativa', 'Implementação', 'Manutenção'];
             const statuses = ['Ativo', 'Churn'];
+            const sort = state.clientSort || { field: null, dir: 'asc' };
+            const sortVal = (c, f) => {
+                switch (f) {
+                    case 'name': return (c.name || '').toLowerCase();
+                    case 'phase': return (c.phase || '').toLowerCase();
+                    case 'status': return (c.status || '').toLowerCase();
+                    case 'system': return (c.system || '').toLowerCase();
+                    case 'startDate': return c.startDate || '';
+                    case 'deliveryDate': return c.deliveryDate || '';
+                    case 'delivered': return c.delivered ? 1 : 0;
+                    case 'recurringValue': return Number(c.recurringValue || 0);
+                    case 'oneTimeValue': return Number(c.oneTimeValue || 0);
+                    default: return '';
+                }
+            };
+            const rowsList = sort.field ? list.slice().sort((a, b) => {
+                const va = sortVal(a, sort.field), vb = sortVal(b, sort.field);
+                if (va < vb) return sort.dir === 'asc' ? -1 : 1;
+                if (va > vb) return sort.dir === 'asc' ? 1 : -1;
+                return 0;
+            }) : list;
+            const arrowFor = (f) => sort.field === f ? `<span class="text-red-500 ml-0.5">${sort.dir === 'asc' ? '↑' : '↓'}</span>` : '';
+            const th = (f, label, align) => `<th class="${align || 'text-left'} font-semibold px-3 py-3 cursor-pointer select-none hover:text-gray-300 transition-colors ${sort.field === f ? 'text-gray-200' : ''}" data-action="setClientSort" data-field="${f}">${label}${arrowFor(f)}</th>`;
             const totalMRR = list.reduce((a, c) => a + Number(c.recurringValue || 0), 0);
-            const rows = list.map(client => {
+            const rows = rowsList.map(client => {
                 const cid = escapeHTML(client.id);
                 const late = isClientLate(client);
                 const faseOpts = fases.map(f => `<option ${f === (client.phase || '') ? 'selected' : ''}>${f}</option>`).join('');
@@ -821,15 +849,15 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                         <table class="w-full border-collapse" style="min-width:960px">
                             <thead>
                                 <tr class="bg-[#0f0f11] border-b border-[#242427] text-[10px] uppercase tracking-wider text-gray-600">
-                                    <th class="text-left font-semibold px-3 py-3">Cliente / Empresa</th>
-                                    <th class="text-left font-semibold px-3 py-3">Fase</th>
-                                    <th class="text-left font-semibold px-3 py-3">Status</th>
-                                    <th class="text-left font-semibold px-3 py-3">Sistema</th>
-                                    <th class="text-left font-semibold px-3 py-3">Início</th>
-                                    <th class="text-left font-semibold px-3 py-3">Entrega</th>
-                                    <th class="text-center font-semibold px-3 py-3">Entregue</th>
-                                    <th class="text-right font-semibold px-3 py-3">MRR</th>
-                                    <th class="text-right font-semibold px-3 py-3">Setup</th>
+                                    ${th('name', 'Cliente / Empresa')}
+                                    ${th('phase', 'Fase')}
+                                    ${th('status', 'Status')}
+                                    ${th('system', 'Sistema')}
+                                    ${th('startDate', 'Início')}
+                                    ${th('deliveryDate', 'Entrega')}
+                                    ${th('delivered', 'Entregue', 'text-center')}
+                                    ${th('recurringValue', 'MRR', 'text-right')}
+                                    ${th('oneTimeValue', 'Setup', 'text-right')}
                                     <th class="px-3 py-3"></th>
                                 </tr>
                             </thead>

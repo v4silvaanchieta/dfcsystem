@@ -14,6 +14,7 @@
             selectedYear: new Date().getFullYear().toString(),
             clientFilter: 'Todos',
             clientStatusFilter: 'Todos',
+            clientSort: { field: null, dir: 'asc' },
             clientsView: 'cards',
             isSignUpMode: false,
             chartInstance: null,
