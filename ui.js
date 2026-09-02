@@ -621,9 +621,20 @@ if (typeof window !== 'undefined') window.showToast = showToast;
 
             // Grupo por status: Churn ; Concluído (= projeto entregue) ; Ativo (em andamento)
             const groupOf = (c) => c.status === 'Churn' ? 'churn' : (c.delivered ? 'concluido' : 'ativo');
+            // Status de pagamento no mês selecionado (usa isClientPending / moTrans)
+            const hasBilling = (c) => c.status !== 'Churn' && (Number(c.recurringValue||0) > 0 || (Number(c.oneTimeValue||0) > 0 && isClientOTActive(c, state.selectedMonth)));
+            const isInadimplente = (c) => isClientPending(c);                 // tem cobrança e ainda não deu baixa
+            const isPago = (c) => hasBilling(c) && !isClientPending(c);       // tem cobrança e já recebeu tudo
             const statusFilter = state.clientStatusFilter || 'Todos';
-            const shown = statusFilter === 'Todos' ? list : list.filter(c => groupOf(c) === statusFilter);
+            const shown = statusFilter === 'Todos' ? list
+                : statusFilter === 'pago' ? list.filter(isPago)
+                : statusFilter === 'inadimplente' ? list.filter(isInadimplente)
+                : list.filter(c => groupOf(c) === statusFilter);
             const viewList = state.clientsView === 'list';
+            const countFor = (key) => key === 'Todos' ? list.length
+                : key === 'pago' ? list.filter(isPago).length
+                : key === 'inadimplente' ? list.filter(isInadimplente).length
+                : list.filter(c => groupOf(c) === key).length;
 
             const phaseChips = ['Todos', 'Manutenção', 'Implementação', 'Tratativa'].map(p => `
                 <button onclick="window.appActions.setClientFilter('${escapeHTML(p)}')" class="px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all whitespace-nowrap ${state.clientFilter === p ? 'bg-red-600 text-white' : 'bg-[#141416] text-gray-500 border border-[#1c1c1f] hover:text-white'}">${escapeHTML(p)}</button>
@@ -631,11 +642,12 @@ if (typeof window !== 'undefined') window.showToast = showToast;
 
             const statusChips = [
                 { key: 'Todos', label: 'Todos' }, { key: 'ativo', label: 'Ativos' },
-                { key: 'concluido', label: 'Concluídos' }, { key: 'churn', label: 'Churn' }
+                { key: 'concluido', label: 'Concluídos' }, { key: 'churn', label: 'Churn' },
+                { key: 'pago', label: 'Pagos', cc: 'text-emerald-500' }, { key: 'inadimplente', label: 'Inadimplentes', cc: 'text-amber-500' }
             ].map(s => {
-                const n = s.key === 'Todos' ? list.length : list.filter(c => groupOf(c) === s.key).length;
+                const n = countFor(s.key);
                 const on = statusFilter === s.key;
-                return `<button onclick="window.appActions.setClientStatusFilter('${s.key}')" class="text-[11px] font-semibold transition-colors ${on ? 'text-white' : 'text-gray-600 hover:text-gray-300'}">${s.label} <span class="dfc-mono ${on ? 'text-gray-300' : 'text-gray-700'}">${n}</span></button>`;
+                return `<button onclick="window.appActions.setClientStatusFilter('${s.key}')" class="text-[11px] font-semibold transition-colors ${on ? 'text-white' : 'text-gray-600 hover:text-gray-300'}">${s.label} <span class="dfc-mono ${s.cc || (on ? 'text-gray-300' : 'text-gray-700')}">${n}</span></button>`;
             }).join('<span class="text-gray-800">·</span>');
 
             let html = `
