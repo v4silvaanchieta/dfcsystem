@@ -87,6 +87,11 @@ window.appActions = window.appActions || {};
                 return showToast('A soma das porcentagens deve ser 100%', 'error');
             }
 
+            const deliveredChecked = document.getElementById('client-delivered').checked;
+            const prevClient = state.clients.find(x => x.id === id);
+            const today = new Date().toISOString().slice(0, 10);
+            const deliveredAt = deliveredChecked ? ((prevClient && prevClient.deliveredAt) ? prevClient.deliveredAt : today) : '';
+
             const data = {
                 name,
                 phase: document.getElementById('client-phase').value,
@@ -94,7 +99,9 @@ window.appActions = window.appActions || {};
                 system: document.getElementById('client-system').value,
                 startDate: document.getElementById('client-startDate').value,
                 deliveryDate: document.getElementById('client-deliveryDate').value,
-                delivered: document.getElementById('client-delivered').checked,
+                delivered: deliveredChecked,
+                deliveredAt,
+                cronograma: document.getElementById('client-cronograma').value,
                 recurringValue: getCurrencyInput('client-recurringValue'),
                 oneTimeValue: getCurrencyInput('client-oneTimeValue'),
                 oneTimeMonth: document.getElementById('client-oneTimeMonth').value,
@@ -429,8 +436,14 @@ window.appActions = window.appActions || {};
         // Atualiza um único campo de um cliente direto no Firestore (sem abrir modal).
         window.appActions.updateClientField = async (id, field, value) => {
             if (!state.user || !id || !field) return false;
+            const data = { [field]: value, updatedAt: serverTimestamp() };
+            if (field === 'delivered') {
+                const c = state.clients.find(x => x.id === id);
+                if (value === true) data.deliveredAt = (c && c.deliveredAt) ? c.deliveredAt : new Date().toISOString().slice(0, 10);
+                else data.deliveredAt = ''; // reabriu o projeto -> limpa a data de entrega
+            }
             try {
-                await updateDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'clients', id), { [field]: value, updatedAt: serverTimestamp() });
+                await updateDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'clients', id), data);
                 return true;
             } catch (e) { showToast('Erro ao salvar', 'error'); return false; }
         };

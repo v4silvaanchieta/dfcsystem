@@ -139,6 +139,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             document.getElementById('client-startDate').value = c.startDate || '';
             document.getElementById('client-deliveryDate').value = c.deliveryDate || '';
             document.getElementById('client-delivered').checked = !!c.delivered;
+            document.getElementById('client-cronograma').value = c.cronograma || '';
             document.getElementById('client-observation').value = c.observation || '';
 
             setCurrencyInput('client-recurringValue', c.recurringValue);
@@ -588,10 +589,59 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 ]);
             }
 
+            // ===== Operacional: Implementação (entrega/prazo) e Pagamentos do mês =====
+            const impl = state.clients.filter(c => c.phase === 'Implementação' && c.status !== 'Churn');
+            const implNaoEntregue = impl.filter(c => !c.delivered);
+            const implAtrasados = implNaoEntregue.filter(c => isClientLate(c)).length;
+            const implAtivos = implNaoEntregue.length - implAtrasados;
+            const implEntregues = impl.filter(c => c.delivered);
+            const implForaPrazo = implEntregues.filter(c => c.deliveredAt && c.deliveryDate && c.deliveredAt > c.deliveryDate).length;
+            const implNoPrazo = implEntregues.length - implForaPrazo;
+
+            const moTransD = state.transactions.filter(t => t.month === state.selectedMonth);
+            const statusPagto = (c) => {
+                if (c.status === 'Churn') return 'none';
+                const rec = Number(c.recurringValue || 0);
+                const otA = isClientOTActive(c, state.selectedMonth);
+                if (rec <= 0 && !otA) return 'none';
+                const ct = moTransD.filter(t => t.clientId === c.id);
+                const recOk = rec <= 0 || ct.some(t => t.type === 'recorrente');
+                const otOk = !otA || ct.some(t => t.type === 'onetime');
+                return (recOk && otOk) ? 'pago' : 'inadimplente';
+            };
+            let nPagos = 0, nInad = 0;
+            state.clients.forEach(c => { const p = statusPagto(c); if (p === 'pago') nPagos++; else if (p === 'inadimplente') nInad++; });
+
+            const miniStat = (label, n, color) => `
+                <div class="min-w-[104px]">
+                    <div class="dfc-mono text-2xl font-semibold ${color}">${n}</div>
+                    <div class="text-[11px] text-gray-500 mt-0.5">${label}</div>
+                </div>`;
+            const statsHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-6 border-t border-[#1a1a1d] pt-6">
+                    <div>
+                        <div class="text-[11px] uppercase tracking-widest text-gray-600 font-semibold mb-4">Implementação</div>
+                        <div class="flex flex-wrap gap-x-8 gap-y-4">
+                            ${miniStat('Ativos', implAtivos, 'text-white')}
+                            ${miniStat('Entregues no prazo', implNoPrazo, 'text-emerald-400')}
+                            ${miniStat('Fora do prazo', implForaPrazo, 'text-amber-400')}
+                            ${miniStat('Atrasados', implAtrasados, 'text-red-400')}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] uppercase tracking-widest text-gray-600 font-semibold mb-4">Pagamentos · <span class="dfc-mono text-gray-500">${escapeHTML(state.selectedMonth)}</span></div>
+                        <div class="flex flex-wrap gap-x-8 gap-y-4">
+                            ${miniStat('Pagos', nPagos, 'text-emerald-400')}
+                            ${miniStat('Inadimplentes', nInad, 'text-amber-400')}
+                        </div>
+                    </div>
+                </div>`;
+
             return `
                 <div class="space-y-8 animate-fade-in">
                     <p class="text-[13px] text-gray-500 leading-relaxed flex items-start gap-2.5"><i data-lucide="info" class="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5"></i><span>${infoText}</span></p>
                     ${totalsHTML}
+                    ${statsHTML}
 
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-8 pt-2">
                         <div class="flex flex-col">
@@ -787,6 +837,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                             ${!isChurn && recVal === 0 && !otActive ? `<span class="text-[11px] text-gray-600 py-1">Sem cobrança no mês</span>` : ''}
                         </div>
                         <div class="flex flex-col gap-1.5 flex-shrink-0 pt-0.5">
+                            ${client.cronograma ? `<a href="${escapeHTML(client.cronograma)}" target="_blank" rel="noopener" title="Cronograma de implementação" class="w-7 h-7 inline-flex items-center justify-center text-blue-400/80 hover:text-blue-400 hover:bg-blue-500/10 rounded-md"><i data-lucide="calendar-clock" class="w-4 h-4"></i></a>` : ''}
                             ${late ? `<button data-action="markDelivered" data-id="${cid}" title="Marcar como entregue" class="w-7 h-7 inline-flex items-center justify-center text-emerald-400 hover:bg-emerald-600/15 rounded-md"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
                             <button data-action="openTaskModal" data-clientid="${cid}" title="Gerar tarefa" class="w-7 h-7 inline-flex items-center justify-center text-gray-500 hover:text-white hover:bg-[#1b1b1e] rounded-md opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="clipboard-plus" class="w-4 h-4"></i></button>
                             <button data-action="deleteClient" data-id="${cid}" title="Excluir projeto" class="w-7 h-7 inline-flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
