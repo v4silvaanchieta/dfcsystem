@@ -491,6 +491,7 @@ window.appActions = window.appActions || {};
                 case 'openClientModal': A.openClientModal(d.id); break;
                 case 'setClientsView': A.setClientsView(d.view); break;
                 case 'setClientSort': A.setClientSort(d.field); break;
+                case 'goClients': A.goClients(d.phase, d.status); break;
                 case 'markDelivered': A.markDelivered(d.id); break;
                 case 'deleteClient': A.deleteClient(d.id); break;
                 case 'openItemModal': A.openItemModal(d.cat, d.id || ''); break;

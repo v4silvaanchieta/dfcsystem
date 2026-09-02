@@ -109,6 +109,14 @@ if (typeof window !== 'undefined') window.showToast = showToast;
         window.appActions.setClientFilter = (f) => { state.clientFilter = f; renderContent(); };
         window.appActions.setClientsView = (v) => { state.clientsView = v; renderContent(); };
         window.appActions.setClientStatusFilter = (f) => { state.clientStatusFilter = f; renderContent(); };
+        window.appActions.goClients = (phase, status) => {
+            state.clientFilter = phase || 'Todos';
+            state.clientStatusFilter = status || 'Todos';
+            state.clientsView = 'cards';
+            state.activeTab = 'clients';
+            renderNav();
+            renderContent();
+        };
         window.appActions.setClientSort = (field) => {
             const s = state.clientSort || { field: null, dir: 'asc' };
             state.clientSort = s.field === field ? { field, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { field, dir: 'asc' };
@@ -612,27 +620,27 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             let nPagos = 0, nInad = 0;
             state.clients.forEach(c => { const p = statusPagto(c); if (p === 'pago') nPagos++; else if (p === 'inadimplente') nInad++; });
 
-            const miniStat = (label, n, color) => `
-                <div class="min-w-[104px]">
-                    <div class="dfc-mono text-2xl font-semibold ${color}">${n}</div>
-                    <div class="text-[11px] text-gray-500 mt-0.5">${label}</div>
-                </div>`;
+            const miniStat = (label, n, color, phase, status) => `
+                <button data-action="goClients" data-phase="${escapeHTML(phase || 'Todos')}" data-status="${escapeHTML(status || 'Todos')}" class="min-w-[104px] text-left group/stat">
+                    <div class="dfc-mono text-2xl font-semibold ${color} group-hover/stat:opacity-80 transition-opacity">${n}</div>
+                    <div class="text-[11px] text-gray-500 mt-0.5 group-hover/stat:text-gray-300 transition-colors">${label} <span class="opacity-0 group-hover/stat:opacity-100 transition-opacity">→</span></div>
+                </button>`;
             const statsHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-6 border-t border-[#1a1a1d] pt-6">
                     <div>
                         <div class="text-[11px] uppercase tracking-widest text-gray-600 font-semibold mb-4">Implementação</div>
                         <div class="flex flex-wrap gap-x-8 gap-y-4">
-                            ${miniStat('Ativos', implAtivos, 'text-white')}
-                            ${miniStat('Entregues no prazo', implNoPrazo, 'text-emerald-400')}
-                            ${miniStat('Fora do prazo', implForaPrazo, 'text-amber-400')}
-                            ${miniStat('Atrasados', implAtrasados, 'text-red-400')}
+                            ${miniStat('Ativos', implAtivos, 'text-white', 'Implementação', 'ativo')}
+                            ${miniStat('Entregues no prazo', implNoPrazo, 'text-emerald-400', 'Implementação', 'noprazo')}
+                            ${miniStat('Fora do prazo', implForaPrazo, 'text-amber-400', 'Implementação', 'foraprazo')}
+                            ${miniStat('Atrasados', implAtrasados, 'text-red-400', 'Implementação', 'atrasado')}
                         </div>
                     </div>
                     <div>
                         <div class="text-[11px] uppercase tracking-widest text-gray-600 font-semibold mb-4">Pagamentos · <span class="dfc-mono text-gray-500">${escapeHTML(state.selectedMonth)}</span></div>
                         <div class="flex flex-wrap gap-x-8 gap-y-4">
-                            ${miniStat('Pagos', nPagos, 'text-emerald-400')}
-                            ${miniStat('Inadimplentes', nInad, 'text-amber-400')}
+                            ${miniStat('Pagos', nPagos, 'text-emerald-400', 'Todos', 'pago')}
+                            ${miniStat('Inadimplentes', nInad, 'text-amber-400', 'Todos', 'inadimplente')}
                         </div>
                     </div>
                 </div>`;
@@ -682,15 +690,17 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             const hasBilling = (c) => c.status !== 'Churn' && (Number(c.recurringValue||0) > 0 || (Number(c.oneTimeValue||0) > 0 && isClientOTActive(c, state.selectedMonth)));
             const isInadimplente = (c) => isClientPending(c);                 // tem cobrança e ainda não deu baixa
             const isPago = (c) => hasBilling(c) && !isClientPending(c);       // tem cobrança e já recebeu tudo
+            const isAtrasado = (c) => isClientLate(c);                        // não entregue e venceu
+            const isNoPrazo = (c) => c.delivered && c.deliveredAt && c.deliveryDate && c.deliveredAt <= c.deliveryDate;
+            const isForaPrazo = (c) => c.delivered && c.deliveredAt && c.deliveryDate && c.deliveredAt > c.deliveryDate;
+            const predByKey = { pago: isPago, inadimplente: isInadimplente, atrasado: isAtrasado, noprazo: isNoPrazo, foraprazo: isForaPrazo };
             const statusFilter = state.clientStatusFilter || 'Todos';
             const shown = statusFilter === 'Todos' ? list
-                : statusFilter === 'pago' ? list.filter(isPago)
-                : statusFilter === 'inadimplente' ? list.filter(isInadimplente)
+                : predByKey[statusFilter] ? list.filter(predByKey[statusFilter])
                 : list.filter(c => groupOf(c) === statusFilter);
             const viewList = state.clientsView === 'list';
             const countFor = (key) => key === 'Todos' ? list.length
-                : key === 'pago' ? list.filter(isPago).length
-                : key === 'inadimplente' ? list.filter(isInadimplente).length
+                : predByKey[key] ? list.filter(predByKey[key]).length
                 : list.filter(c => groupOf(c) === key).length;
 
             const phaseChips = ['Todos', 'Manutenção', 'Implementação', 'Tratativa'].map(p => `
@@ -700,6 +710,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             const statusChips = [
                 { key: 'Todos', label: 'Todos' }, { key: 'ativo', label: 'Ativos' },
                 { key: 'concluido', label: 'Concluídos' }, { key: 'churn', label: 'Churn' },
+                { key: 'atrasado', label: 'Atrasados', cc: 'text-red-500' },
                 { key: 'pago', label: 'Pagos', cc: 'text-emerald-500' }, { key: 'inadimplente', label: 'Inadimplentes', cc: 'text-amber-500' }
             ].map(s => {
                 const n = countFor(s.key);
