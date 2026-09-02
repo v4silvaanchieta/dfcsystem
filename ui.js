@@ -789,6 +789,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                         <div class="flex flex-col gap-1.5 flex-shrink-0 pt-0.5">
                             ${late ? `<button data-action="markDelivered" data-id="${cid}" title="Marcar como entregue" class="w-7 h-7 inline-flex items-center justify-center text-emerald-400 hover:bg-emerald-600/15 rounded-md"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
                             <button data-action="openTaskModal" data-clientid="${cid}" title="Gerar tarefa" class="w-7 h-7 inline-flex items-center justify-center text-gray-500 hover:text-white hover:bg-[#1b1b1e] rounded-md opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="clipboard-plus" class="w-4 h-4"></i></button>
+                            <button data-action="deleteClient" data-id="${cid}" title="Excluir projeto" class="w-7 h-7 inline-flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     </div>
                 `;

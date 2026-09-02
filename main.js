@@ -440,6 +440,21 @@ window.appActions = window.appActions || {};
             showToast('Marcado como entregue!');
         };
 
+        // Exclui o cliente/projeto e também as baixas (transactions) dele, p/ não deixar valor órfão no mês.
+        window.appActions.deleteClient = async (id) => {
+            if (!state.user || !id) return;
+            const c = state.clients.find(x => x.id === id);
+            if (!confirm(`Excluir o projeto "${c ? c.name : ''}"? As baixas dele também serão removidas. Não dá para desfazer.`)) return;
+            const base = ['artifacts', appId, 'users', state.user.uid];
+            try {
+                for (const t of state.transactions.filter(t => t.clientId === id)) {
+                    await deleteDoc(doc(db, ...base, 'transactions', t.id));
+                }
+                await deleteDoc(doc(db, ...base, 'clients', id));
+                showToast('Projeto excluído');
+            } catch (e) { showToast('Erro ao excluir', 'error'); }
+        };
+
         // Salva a célula quando o usuário sai dela (change dispara no blur de inputs e na seleção de selects/checkbox).
         document.addEventListener('change', async (e) => {
             const el = e.target.closest('[data-field]');
@@ -464,6 +479,7 @@ window.appActions = window.appActions || {};
                 case 'setClientsView': A.setClientsView(d.view); break;
                 case 'setClientSort': A.setClientSort(d.field); break;
                 case 'markDelivered': A.markDelivered(d.id); break;
+                case 'deleteClient': A.deleteClient(d.id); break;
                 case 'openItemModal': A.openItemModal(d.cat, d.id || ''); break;
                 case 'deleteItem': A.deleteItem(d.coll, d.id); break;
                 case 'darBaixa': A.darBaixa(d.id, Number(d.val), d.btype); break;
