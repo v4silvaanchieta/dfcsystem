@@ -1,6 +1,6 @@
 // ui.js — Renderização (dashboard, listas, modais), gráficos Chart.js e ações de interface.
 import { state } from './state.js';
-import { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts, isClientLate, formatDateBR } from './finance.js';
+import { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts, isClientLate, formatDateBR, getClientOTValueForMonth, getOTMonthIndex, getOTInstallments } from './finance.js';
 
 window.appActions = window.appActions || {};
 
@@ -138,6 +138,8 @@ if (typeof window !== 'undefined') window.showToast = showToast;
 
             setCurrencyInput('client-recurringValue', c.recurringValue);
             setCurrencyInput('client-oneTimeValue', c.oneTimeValue);
+            document.getElementById('client-oneTimeMonth').value = c.oneTimeMonth || '';
+            document.getElementById('client-oneTimeInstallments').value = c.oneTimeInstallments || '';
 
             document.getElementById('client-recurringMargin').innerText = formatCurrency(calcMargin(c.recurringValue));
             document.getElementById('client-oneTimeMargin').innerText = formatCurrency(calcMargin(c.oneTimeValue));
@@ -348,7 +350,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                     mainLabels = ['Projeção Atual'];
                     const activeC = state.clients.filter(c => c.status !== 'Churn');
                     const prevMRR = activeC.reduce((a, c) => a + Number(c.recurringValue||0), 0);
-                    const prevOT = activeC.reduce((a, c) => isClientOTActive(c, state.selectedMonth) ? a + Number(c.oneTimeValue||0) : a, 0);
+                    const prevOT = activeC.reduce((a, c) => a + getClientOTValueForMonth(c, state.selectedMonth), 0);
                     const { cFixo, cVarFornecedores } = getCalculatedCosts(state.selectedMonth);
                     const fin = calcFinancials(prevMRR + prevOT, cVarFornecedores, cFixo);
                     mainFaturamento = [fin.margemDFC];
@@ -417,7 +419,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                         const margin = state.clients.filter(c => c.status !== 'Churn').reduce((sum, c) => {
                             let m = 0;
                             if (Number(c.recurringValue || 0) > 0) m += calcMargin(Number(c.recurringValue));
-                            if (isClientOTActive(c, state.selectedMonth)) m += calcMargin(Number(c.oneTimeValue));
+                            m += calcMargin(getClientOTValueForMonth(c, state.selectedMonth));
                             return sum + (m * getMemberPct(c, member.id));
                         }, 0);
                         mMargins = [margin]; mCosts = [getMemberCostInMonth(member, state.selectedMonth)];
@@ -520,7 +522,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             if (mode === 'forecast') {
                 const activeC = state.clients.filter(c => c.status !== 'Churn');
                 const prevMRR = activeC.reduce((a, c) => a + Number(c.recurringValue || 0), 0);
-                const prevOT = activeC.reduce((a, c) => isClientOTActive(c, state.selectedMonth) ? a + Number(c.oneTimeValue || 0) : a, 0);
+                const prevOT = activeC.reduce((a, c) => a + getClientOTValueForMonth(c, state.selectedMonth), 0);
                 const totalFaturamentoPrevisto = prevMRR + prevOT;
 
                 const { cFixo, cVarFornecedores, custosTotais } = getCalculatedCosts(state.selectedMonth);
@@ -650,6 +652,20 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 return `<button onclick="window.appActions.setClientStatusFilter('${s.key}')" class="text-[11px] font-semibold transition-colors ${on ? 'text-white' : 'text-gray-600 hover:text-gray-300'}">${s.label} <span class="dfc-mono ${s.cc || (on ? 'text-gray-300' : 'text-gray-700')}">${n}</span></button>`;
             }).join('<span class="text-gray-800">·</span>');
 
+            // Resumo do mês: quanto há a receber, quanto já recebeu, quanto falta (parcelas de setup incluídas)
+            let aReceber = 0, recebidoMes = 0;
+            list.forEach(c => {
+                if (c.status === 'Churn') return;
+                const rec = Number(c.recurringValue || 0);
+                const ot = getClientOTValueForMonth(c, state.selectedMonth);
+                aReceber += rec + ot;
+                const ct = moTrans.filter(t => t.clientId === c.id);
+                if (rec > 0 && ct.find(t => t.type === 'recorrente')) recebidoMes += rec;
+                const otx = ct.find(t => t.type === 'onetime');
+                if (otx) recebidoMes += Number(otx.value || 0);
+            });
+            const pendenteMes = aReceber - recebidoMes;
+
             let html = `
                 <div class="flex flex-col gap-4 mb-6">
                     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -668,7 +684,14 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                             <button onclick="window.appActions.openClientModal()" class="bg-[#f3f3f4] text-black px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Cadastrar</button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 flex-wrap">${statusChips}</div>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 flex-wrap">${statusChips}</div>
+                        <div class="flex items-center gap-5 text-[11px]">
+                            <span class="text-gray-500">A receber <span class="dfc-mono text-gray-400">${escapeHTML(state.selectedMonth)}</span></span>
+                            <span class="text-gray-500">Pendente <span class="dfc-mono text-amber-400 font-semibold">${formatCurrency(pendenteMes)}</span></span>
+                            <span class="text-gray-500">Recebido <span class="dfc-mono text-emerald-400 font-semibold">${formatCurrency(recebidoMes)}</span></span>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -699,7 +722,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
             return html + renderGroup(shown);
         }
 
-        // Visão em linhas (flat) — enxuta, com datas, atraso, baixa e ação rápida.
+        // Visão em linhas (flat) — MRR + Implementação (parcela do mês), datas Início/Entrega e baixa.
         function getClientsCardsHTML(list, moTrans) {
             return `<div class="divide-y divide-[#1a1a1d]">` + list.map(client => {
                 const cid = escapeHTML(client.id);
@@ -709,8 +732,11 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 const isChurn = client.status === 'Churn';
                 const late = isClientLate(client);
                 const recVal = Number(client.recurringValue) || 0;
-                const otVal = Number(client.oneTimeValue) || 0;
-                const otActive = otVal > 0 && isClientOTActive(client, state.selectedMonth);
+                const otVal = getClientOTValueForMonth(client, state.selectedMonth); // parcela do setup neste mês
+                const otActive = otVal > 0;
+                const otN = getOTInstallments(client);
+                const otIdx = getOTMonthIndex(client, state.selectedMonth);
+                const otLabel = (otN > 1 && otIdx >= 0) ? `Implementação ${otIdx + 1}/${otN}` : 'Implementação';
                 const hasPendingTask = state.tasks.some(t => t.clientId === client.id && t.status !== 'solucionado');
 
                 let teamBadges = '';
@@ -724,10 +750,18 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 const payBtn = (val, type, trans) => trans
                     ? `<button data-action="removeBaixa" data-id="${escapeHTML(trans.id)}" class="text-[11px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-md font-semibold whitespace-nowrap">Recebido</button>`
                     : `<button data-action="darBaixa" data-id="${cid}" data-val="${val}" data-btype="${type}" class="text-[11px] bg-red-600 text-white px-2.5 py-1 rounded-md font-semibold whitespace-nowrap hover:bg-red-700">Pagar</button>`;
+                const moneyLine = (label, val, btn) => `
+                    <div class="flex items-center justify-end gap-2.5">
+                        <div class="text-right leading-tight">
+                            <div class="text-[9px] uppercase text-gray-600 tracking-wide">${label}</div>
+                            <div class="dfc-mono text-sm font-semibold text-white">${formatCurrency(val)}</div>
+                        </div>
+                        ${btn}
+                    </div>`;
 
                 return `
-                    <div class="group flex items-center gap-4 py-3.5 px-2 -mx-2 rounded-lg hover:bg-[#0e0e10] transition-colors ${isChurn ? 'opacity-50' : ''}">
-                        <div class="flex-1 min-w-0 cursor-pointer" data-action="openClientModal" data-id="${cid}">
+                    <div class="group flex items-start gap-4 py-4 px-2 -mx-2 rounded-lg hover:bg-[#0e0e10] transition-colors ${isChurn ? 'opacity-50' : ''}">
+                        <div class="flex-1 min-w-0 cursor-pointer pt-0.5" data-action="openClientModal" data-id="${cid}">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-semibold text-white truncate">${escapeHTML(client.name)}</span>
                                 ${late ? `<span class="text-[9px] uppercase font-bold text-white bg-red-600 px-1.5 py-0.5 rounded animate-pulse">Atrasado</span>` : ''}
@@ -737,17 +771,17 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                             <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-500 mt-1">
                                 <span class="text-gray-400">${escapeHTML(client.phase)}</span>
                                 ${client.system ? `<span class="text-gray-700">·</span><span>${escapeHTML(client.system)}</span>` : ''}
+                                <span class="text-gray-700">·</span><span>Início <span class="dfc-mono text-gray-300">${formatDateBR(client.startDate)}</span></span>
                                 <span class="text-gray-700">·</span><span>Entrega <span class="dfc-mono ${late ? 'text-red-400 font-semibold' : (client.delivered ? 'text-emerald-400' : 'text-gray-300')}">${formatDateBR(client.deliveryDate)}</span></span>
                                 ${teamBadges ? `<span class="text-gray-700">·</span>${teamBadges}` : ''}
                             </div>
                         </div>
-                        <div class="text-right flex-shrink-0">
-                            <div class="dfc-mono font-semibold text-white">${formatCurrency(recVal)}</div>
-                            <div class="text-[9px] text-gray-600 uppercase tracking-wide">MRR/mês</div>
+                        <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                            ${!isChurn && recVal > 0 ? moneyLine('MRR / mês', recVal, payBtn(recVal, 'recorrente', recTrans)) : ''}
+                            ${!isChurn && otActive ? moneyLine(otLabel, otVal, payBtn(otVal, 'onetime', otTrans)) : ''}
+                            ${!isChurn && recVal === 0 && !otActive ? `<span class="text-[11px] text-gray-600 py-1">Sem cobrança no mês</span>` : ''}
                         </div>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            ${!isChurn && recVal > 0 ? payBtn(recVal, 'recorrente', recTrans) : ''}
-                            ${!isChurn && otActive ? `<span class="hidden sm:inline">${payBtn(otVal, 'onetime', otTrans)}</span>` : ''}
+                        <div class="flex flex-col gap-1.5 flex-shrink-0 pt-0.5">
                             ${late ? `<button data-action="markDelivered" data-id="${cid}" title="Marcar como entregue" class="w-7 h-7 inline-flex items-center justify-center text-emerald-400 hover:bg-emerald-600/15 rounded-md"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
                             <button data-action="openTaskModal" data-clientid="${cid}" title="Gerar tarefa" class="w-7 h-7 inline-flex items-center justify-center text-gray-500 hover:text-white hover:bg-[#1b1b1e] rounded-md opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="clipboard-plus" class="w-4 h-4"></i></button>
                         </div>
@@ -1041,7 +1075,7 @@ if (typeof window !== 'undefined') window.showToast = showToast;
                 const recT = cTrans.find(t => t.type === 'recorrente');
                 const otT = cTrans.find(t => t.type === 'onetime');
                 const pR = Number(client.recurringValue||0);
-                const pO = isClientOTActive(client, state.selectedMonth) ? Number(client.oneTimeValue||0) : 0;
+                const pO = getClientOTValueForMonth(client, state.selectedMonth);
                 const rR = recT?recT.value:0;
                 const rO = otT?otT.value:0;
 

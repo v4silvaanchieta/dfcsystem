@@ -310,6 +310,17 @@
                                     <span id="client-oneTimeMargin" class="text-emerald-400 font-mono font-bold w-full text-right">R$ 0,00</span>
                                 </div>
                             </div>
+                            <div class="grid grid-cols-2 gap-3 mt-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Mês da 1ª parcela</label>
+                                    <input type="month" id="client-oneTimeMonth" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-2.5 text-white text-sm focus:border-red-500 outline-none" style="color-scheme: dark;" />
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Parcelas</label>
+                                    <input type="number" id="client-oneTimeInstallments" min="1" step="1" placeholder="1" class="w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-2.5 text-white text-sm focus:border-red-500 outline-none" />
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-2 italic">Setup dividido em N parcelas iguais, 1 por mês a partir do mês escolhido. Encerra ao fim das parcelas.</p>
                         </div>
                     </div>
                 </div>

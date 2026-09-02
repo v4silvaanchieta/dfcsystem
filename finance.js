@@ -60,19 +60,44 @@ if (typeof window !== 'undefined') window.escapeHTML = escapeHTML;
             return 0;
         }
 
+        // Soma k meses a "YYYY-MM".
+        function addMonths(ym, k) {
+            const [y, m] = String(ym).split('-').map(Number);
+            const d = new Date(y, (m - 1) + k, 1);
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+        // Nº de parcelas do Setup/One Time (mínimo 1).
+        function getOTInstallments(client) {
+            const n = Math.floor(Number(client.oneTimeInstallments || 1));
+            return n >= 1 ? n : 1;
+        }
+        // Mês da 1ª parcela: oneTimeMonth explícito, senão o mês da Data de Entrega.
+        function getOTStartMonth(client) {
+            return client.oneTimeMonth || (client.deliveryDate ? client.deliveryDate.substring(0, 7) : null);
+        }
+        // Índice (0-based) da parcela que cai no mês alvo, ou -1 se o mês está fora da janela de parcelas.
+        function getOTMonthIndex(client, targetMonth) {
+            const start = getOTStartMonth(client);
+            if (!start) return -1;
+            const n = getOTInstallments(client);
+            for (let i = 0; i < n; i++) if (addMonths(start, i) === targetMonth) return i;
+            return -1;
+        }
+        // Valor de OT (parcela) a receber no mês alvo. Fora da janela: 0 (ou o valor de uma baixa histórica desse mês).
+        function getClientOTValueForMonth(client, targetMonth) {
+            const total = Number(client.oneTimeValue || 0);
+            if (total <= 0) return 0;
+            const idx = getOTMonthIndex(client, targetMonth);
+            if (idx >= 0) return total / getOTInstallments(client);
+            const tx = state.transactions.find(t => t.clientId === client.id && t.type === 'onetime' && t.month === targetMonth);
+            return tx ? Number(tx.value || 0) : 0;
+        }
+
+        // OT "ativo" no mês: dentro da janela de parcelas, ou mês que já teve baixa de OT (histórico).
         function isClientOTActive(client, targetMonth) {
-            const hasOT = Number(client.oneTimeValue || 0) > 0;
-            if (!hasOT) return false;
-
-            const otTransaction = state.transactions.find(t => t.clientId === client.id && t.type === 'onetime');
-            if (otTransaction) {
-                return otTransaction.month === targetMonth;
-            }
-
-            if (client.deliveryDate) {
-                return client.deliveryDate.substring(0, 7) === targetMonth;
-            }
-            return true;
+            if (Number(client.oneTimeValue || 0) <= 0) return false;
+            if (getOTMonthIndex(client, targetMonth) >= 0) return true;
+            return state.transactions.some(t => t.clientId === client.id && t.type === 'onetime' && t.month === targetMonth);
         }
 
         function getMemberCostInMonth(member, targetMonth) {
@@ -120,4 +145,4 @@ if (typeof window !== 'undefined') window.escapeHTML = escapeHTML;
             return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
         }
 
-export { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts, isClientLate, formatDateBR };
+export { escapeHTML, formatCurrency, formatNumberToBR, calcFinancials, calcMargin, getClientToolCostInMonth, getMemberPct, isClientOTActive, getMemberCostInMonth, getCalculatedCosts, isClientLate, formatDateBR, getClientOTValueForMonth, getOTMonthIndex, getOTInstallments, getOTStartMonth };

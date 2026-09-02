@@ -97,6 +97,8 @@ window.appActions = window.appActions || {};
                 delivered: document.getElementById('client-delivered').checked,
                 recurringValue: getCurrencyInput('client-recurringValue'),
                 oneTimeValue: getCurrencyInput('client-oneTimeValue'),
+                oneTimeMonth: document.getElementById('client-oneTimeMonth').value,
+                oneTimeInstallments: Math.max(1, Math.floor(Number(document.getElementById('client-oneTimeInstallments').value) || 1)),
                 observation: document.getElementById('client-observation').value,
                 teamAllocations,
                 updatedAt: serverTimestamp()
